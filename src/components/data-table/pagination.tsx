@@ -18,11 +18,14 @@ import {
 type DataTablePaginationProps<TData> = {
   table: Table<TData>
   className?: string
+  /** Optional text such as "Showing 1–20 of 125" */
+  summary?: React.ReactNode
 }
 
 export function DataTablePagination<TData>({
   table,
   className,
+  summary,
 }: DataTablePaginationProps<TData>) {
   const currentPage = table.getState().pagination.pageIndex + 1
   const totalPages = table.getPageCount()
@@ -41,6 +44,11 @@ export function DataTablePagination<TData>({
         <div className='flex w-25 items-center justify-center text-sm font-medium @2xl/content:hidden'>
           Page {currentPage} of {totalPages}
         </div>
+        {summary && (
+          <div className='text-sm text-muted-foreground @max-2xl/content:hidden'>
+            {summary}
+          </div>
+        )}
         <div className='flex items-center gap-2 @max-2xl/content:flex-row-reverse'>
           <Select
             value={`${table.getState().pagination.pageSize}`}

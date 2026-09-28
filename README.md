@@ -1,119 +1,51 @@
-# Shadcn Admin Dashboard
+# depot-entry-admin
 
-Admin Dashboard UI crafted with Shadcn and Vite. Built with responsiveness and accessibility in mind.
+Admin frontend for the Client Management System. Staff sign in to view,
+search, filter and export client submissions.
 
-![alt text](public/images/shadcn-admin.png)
-
-[![Sponsored by Clerk](https://img.shields.io/badge/Sponsored%20by-Clerk-5b6ee1?logo=clerk)](https://go.clerk.com/GttUAaK)
-
-I've been creating dashboard UIs at work and for my personal projects. I always wanted to make a reusable collection of dashboard UI for future projects; and here it is now. While I've created a few custom components, some of the code is directly adapted from ShadcnUI examples.
-
-> This is not a starter project (template) though. I'll probably make one in the future.
+Built on [shadcn-admin](https://github.com/satnaing/shadcn-admin) (MIT) with
+React, Vite, TypeScript, Tailwind CSS, shadcn/ui, TanStack Router, Query and Table.
 
 ## Features
 
-- Light/dark mode
-- Responsive
-- Accessible
-- With built-in Sidebar component
-- Global search command
-- 10+ pages
-- Extra custom components
-- RTL support
+- Admin login (JWT Bearer) with protected routes and session expiry handling
+- Clients table with server-side pagination
+- Debounced search by name, phone or submission number
+- Cascading Province → District → Commune filters, Sale GB and date range filters
+- Client detail panel with image previews and PDF links
+- Excel export of the current filtered results
+- Light/dark theme and Khmer text support
 
-<details>
-<summary>Customized Components (click to expand)</summary>
+## Getting started
 
-This project uses Shadcn UI components, but some have been slightly modified for better RTL (Right-to-Left) support and other improvements. These customized components differ from the original Shadcn UI versions.
-
-If you want to update components using the Shadcn CLI (e.g., `npx shadcn@latest add <component>`), it's generally safe for non-customized components. For the listed customized ones, you may need to manually merge changes to preserve the project's modifications and avoid overwriting RTL support or other updates.
-
-> If you don't require RTL support, you can safely update the 'RTL Updated Components' via the Shadcn CLI, as these changes are primarily for RTL compatibility. The 'Modified Components' may have other customizations to consider.
-
-### Modified Components
-
-- scroll-area
-- sonner
-- separator
-
-### RTL Updated Components
-
-- alert-dialog
-- calendar
-- command
-- dialog
-- dropdown-menu
-- select
-- table
-- sheet
-- sidebar
-- switch
-
-**Notes:**
-
-- **Modified Components**: These have general updates, potentially including RTL adjustments.
-- **RTL Updated Components**: These have specific changes for RTL language support (e.g., layout, positioning).
-- For implementation details, check the source files in `src/components/ui/`.
-- All other Shadcn UI components in the project are standard and can be safely updated via the CLI.
-
-</details>
-
-## Tech Stack
-
-**UI:** [ShadcnUI](https://ui.shadcn.com) (TailwindCSS + RadixUI)
-
-**Build Tool:** [Vite](https://vitejs.dev/)
-
-**Routing:** [TanStack Router](https://tanstack.com/router/latest)
-
-**Type Checking:** [TypeScript](https://www.typescriptlang.org/)
-
-**Linting/Formatting:** [ESLint](https://eslint.org/) & [Prettier](https://prettier.io/)
-
-**Icons:** [Lucide Icons](https://lucide.dev/icons/), [Tabler Icons](https://tabler.io/icons) (Brand icons only)
-
-**Auth (partial):** [Clerk](https://go.clerk.com/GttUAaK)
-
-## Run Locally
-
-Clone the project
+Requirements: Node.js 22+ and pnpm 10.
 
 ```bash
-  git clone https://github.com/satnaing/shadcn-admin.git
+pnpm install
+cp .env.example .env   # set VITE_API_URL to the backend URL
+pnpm dev
 ```
 
-Go to the project directory
+The app runs at http://localhost:5173 and expects the backend at
+`VITE_API_URL` (default `http://localhost:5000`).
 
-```bash
-  cd shadcn-admin
-```
+## Scripts
 
-Install dependencies
+| Command             | Description                        |
+| ------------------- | ---------------------------------- |
+| `pnpm dev`          | Start the dev server               |
+| `pnpm build`        | Type-check and build to `dist/`    |
+| `pnpm lint`         | Run ESLint                         |
+| `pnpm format:check` | Check formatting with Prettier     |
+| `pnpm test`         | Run the Vitest browser test suite¹ |
 
-```bash
-  pnpm install
-```
+¹ Run `pnpm test:browser:install` once to download the test browser.
 
-Start the server
+## CI
 
-```bash
-  pnpm run dev
-```
-
-## Sponsoring this project ❤️
-
-If you find this project helpful or use this in your own work, consider [sponsoring me](https://github.com/sponsors/satnaing) to support development and maintenance. You can [buy me a coffee](https://buymeacoffee.com/satnaing) as well. Don’t worry, every penny helps. Thank you! 🙏
-
-For questions or sponsorship inquiries, feel free to reach out at [satnaingdev@gmail.com](mailto:satnaingdev@gmail.com).
-
-### Current Sponsor
-
-- [Clerk](https://go.clerk.com/GttUAaK) - authentication and user management for the modern web
-
-## Author
-
-Crafted with 🤍 by [@satnaing](https://github.com/satnaing)
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, Prettier, type check,
+tests and a production build on every push and pull request to `main`.
 
 ## License
 
-Licensed under the [MIT License](https://choosealicense.com/licenses/mit/)
+MIT, see [LICENSE](LICENSE).

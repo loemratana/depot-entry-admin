@@ -9,21 +9,35 @@ on:
     branches:
       - main
 
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Cancel an older run when a newer commit is pushed to the same branch/PR
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  install-lint-build:
+  install-lint-test-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-
-      - name: Install pnpm
-        run: npm install -g pnpm
+          node-version: 22
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -31,11 +45,11 @@ jobs:
       - name: Lint the code
         run: pnpm lint
 
-      # - name: Analyze unused files and dependencies
-      #   run: pnpm knip
-
       - name: Run Prettier check
         run: pnpm format:check
+
+      - name: Type check
+        run: pnpm exec tsc -b
 
       - name: Install browsers
         run: pnpm test:browser:install
@@ -45,3 +59,5 @@ jobs:
 
       - name: Build the project
         run: pnpm build
+        env:
+          VITE_API_URL: http://localhost:5000

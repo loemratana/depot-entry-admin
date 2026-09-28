@@ -1,13 +1,14 @@
 import { create } from 'zustand'
 import { getCookie, setCookie, removeCookie } from '@/lib/cookies'
 
-const ACCESS_TOKEN = 'thisisjustarandomstring'
+const ACCESS_TOKEN = 'cm_admin_token'
 
-interface AuthUser {
-  accountNo: string
+/** Admin profile as returned by `/api/admin/auth/login` and `/me` */
+export interface AuthUser {
+  id: string
+  name: string
   email: string
-  role: string[]
-  exp: number
+  role: string
 }
 
 interface AuthState {
@@ -15,24 +16,39 @@ interface AuthState {
     user: AuthUser | null
     setUser: (user: AuthUser | null) => void
     accessToken: string
-    setAccessToken: (accessToken: string) => void
+    /** `maxAge` in seconds; keep the cookie no longer than the JWT is valid */
+    setAccessToken: (accessToken: string, maxAge?: number) => void
     resetAccessToken: () => void
     reset: () => void
   }
 }
 
-export const useAuthStore = create<AuthState>()((set) => {
+function readPersistedToken(): string {
   const cookieState = getCookie(ACCESS_TOKEN)
-  const initToken = cookieState ? JSON.parse(cookieState) : ''
+  if (!cookieState) return ''
+  try {
+    const token = JSON.parse(decodeURIComponent(cookieState))
+    return typeof token === 'string' ? token : ''
+  } catch {
+    return ''
+  }
+}
+
+export const useAuthStore = create<AuthState>()((set) => {
+  const initToken = readPersistedToken()
   return {
     auth: {
       user: null,
       setUser: (user) =>
         set((state) => ({ ...state, auth: { ...state.auth, user } })),
       accessToken: initToken,
-      setAccessToken: (accessToken) =>
+      setAccessToken: (accessToken, maxAge) =>
         set((state) => {
-          setCookie(ACCESS_TOKEN, JSON.stringify(accessToken))
+          setCookie(
+            ACCESS_TOKEN,
+            encodeURIComponent(JSON.stringify(accessToken)),
+            maxAge
+          )
           return { ...state, auth: { ...state.auth, accessToken } }
         }),
       resetAccessToken: () =>

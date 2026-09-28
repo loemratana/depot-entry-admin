@@ -1,5 +1,6 @@
 import { format } from 'date-fns'
 import { Calendar as CalendarIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -12,12 +13,19 @@ type DatePickerProps = {
   selected: Date | undefined
   onSelect: (date: Date | undefined) => void
   placeholder?: string
+  className?: string
+  /** Extra dates to disable on top of future dates */
+  isDateDisabled?: (date: Date) => boolean
+  'aria-label'?: string
 }
 
 export function DatePicker({
   selected,
   onSelect,
   placeholder = 'Pick a date',
+  className,
+  isDateDisabled,
+  'aria-label': ariaLabel,
 }: DatePickerProps) {
   return (
     <Popover>
@@ -25,7 +33,11 @@ export function DatePicker({
         <Button
           variant='outline'
           data-empty={!selected}
-          className='w-60 justify-start text-start font-normal data-[empty=true]:text-muted-foreground'
+          aria-label={ariaLabel}
+          className={cn(
+            'w-60 justify-start text-start font-normal data-[empty=true]:text-muted-foreground',
+            className
+          )}
         >
           {selected ? (
             format(selected, 'MMM d, yyyy')
@@ -40,9 +52,12 @@ export function DatePicker({
           mode='single'
           captionLayout='dropdown'
           selected={selected}
+          defaultMonth={selected}
           onSelect={onSelect}
           disabled={(date: Date) =>
-            date > new Date() || date < new Date('1900-01-01')
+            date > new Date() ||
+            date < new Date('1900-01-01') ||
+            (isDateDisabled?.(date) ?? false)
           }
         />
       </PopoverContent>

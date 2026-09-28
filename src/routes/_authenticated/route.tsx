@@ -1,6 +1,39 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { AxiosError } from 'axios'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useAuthStore } from '@/stores/auth-store'
 import { AuthenticatedLayout } from '@/components/layout/authenticated-layout'
+import { currentAdminQueryOptions } from '@/features/auth/api'
 
 export const Route = createFileRoute('/_authenticated')({
+  beforeLoad: async ({ context, location }) => {
+    const { auth } = useAuthStore.getState()
+
+    if (!auth.accessToken) {
+      throw redirect({
+        to: '/login',
+        search: { redirect: location.href },
+        replace: true,
+      })
+    }
+
+    if (!auth.user) {
+      try {
+        const admin = await context.queryClient.ensureQueryData(
+          currentAdminQueryOptions
+        )
+        auth.setUser(admin)
+      } catch (error) {
+        // Invalid/expired token: the API client already cleared the session
+        if (error instanceof AxiosError && error.response?.status === 401) {
+          throw redirect({
+            to: '/login',
+            search: { redirect: location.href },
+            replace: true,
+          })
+        }
+        // Backend unreachable etc.: keep the session, pages show their own errors
+      }
+    }
+  },
   component: AuthenticatedLayout,
 })
