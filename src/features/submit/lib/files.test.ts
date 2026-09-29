@@ -66,3 +66,19 @@ describe('createIdempotencyKey', () => {
     expect(createIdempotencyKey()).not.toBe(a)
   })
 })
+
+describe('mergeFiles with a lower limit', () => {
+  it('stops at the given limit when site photos use part of the allowance', () => {
+    const { files, problems } = mergeFiles(
+      [],
+      [
+        file('a.png', 'image/png'),
+        file('b.png', 'image/png'),
+        file('c.png', 'image/png'),
+      ],
+      2
+    )
+    expect(files.map((f) => f.name)).toEqual(['a.png', 'b.png'])
+    expect(problems.map((p) => p.name)).toEqual(['c.png'])
+  })
+})

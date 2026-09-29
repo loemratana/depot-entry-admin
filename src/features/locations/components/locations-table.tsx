@@ -84,6 +84,26 @@ function Name({ item }: { item: LocationRef | null }) {
   )
 }
 
+/** Menu icon on a small solid-colour square (white icon) */
+function SolidIcon({
+  className,
+  children,
+}: {
+  className: string
+  children: React.ReactNode
+}) {
+  return (
+    <span
+      className={cn(
+        'flex size-6 shrink-0 items-center justify-center rounded-md text-white [&_svg]:size-3.5 [&_svg]:text-white',
+        className
+      )}
+    >
+      {children}
+    </span>
+  )
+}
+
 /** Actions for one level of a row (edit, activate/deactivate, delete) */
 function LevelActions({
   target,
@@ -103,14 +123,24 @@ function LevelActions({
         {label}: {target.item.nameKh}
       </DropdownMenuLabel>
       <DropdownMenuItem onSelect={() => onEdit(target)}>
-        <Pencil /> Edit
+        <SolidIcon className='bg-amber-500'>
+          <Pencil />
+        </SolidIcon>
+        Edit
       </DropdownMenuItem>
       <DropdownMenuItem onSelect={() => onToggle(target)}>
-        {target.item.isActive ? <Ban /> : <CheckCircle2 />}
+        <SolidIcon
+          className={target.item.isActive ? 'bg-sky-600' : 'bg-emerald-600'}
+        >
+          {target.item.isActive ? <Ban /> : <CheckCircle2 />}
+        </SolidIcon>
         {target.item.isActive ? 'Deactivate' : 'Activate'}
       </DropdownMenuItem>
       <DropdownMenuItem variant='destructive' onSelect={() => onDelete(target)}>
-        <Trash2 /> Delete
+        <SolidIcon className='bg-red-600'>
+          <Trash2 />
+        </SolidIcon>
+        Delete
       </DropdownMenuItem>
     </DropdownMenuGroup>
   )
@@ -364,9 +394,8 @@ export function LocationsTable() {
                       <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
                           <Button
-                            variant='ghost'
                             size='icon'
-                            className='size-8'
+                            className='size-8 bg-[#5027F5] text-white hover:bg-[#4119d9]'
                             aria-label={`Actions for ${own.nameKh}`}
                           >
                             <MoreHorizontal />
@@ -404,7 +433,10 @@ export function LocationsTable() {
                                   })
                                 }
                               >
-                                <Plus /> Add commune here
+                                <SolidIcon className='bg-[#5027F5]'>
+                                  <Plus />
+                                </SolidIcon>
+                                Add commune here
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                             </>
@@ -422,7 +454,10 @@ export function LocationsTable() {
                               })
                             }
                           >
-                            <Plus /> Add district here
+                            <SolidIcon className='bg-[#5027F5]'>
+                              <Plus />
+                            </SolidIcon>
+                            Add district here
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

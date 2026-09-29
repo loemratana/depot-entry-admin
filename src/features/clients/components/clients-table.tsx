@@ -41,6 +41,7 @@ export function ClientsTable({
   hasActiveFilters,
   onClearFilters,
   onView,
+  onViewMap,
   onEdit,
   onDelete,
 }: ClientsTableProps) {
@@ -69,8 +70,8 @@ export function ClientsTable({
   const pageCount = Math.max(meta?.totalPages ?? 1, 1)
 
   const columns = useMemo(
-    () => getClientsColumns({ onView, onEdit, onDelete }),
-    [onView, onEdit, onDelete]
+    () => getClientsColumns({ onView, onViewMap, onEdit, onDelete }),
+    [onView, onViewMap, onEdit, onDelete]
   )
 
   // eslint-disable-next-line react-hooks/incompatible-library

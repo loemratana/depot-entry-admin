@@ -18,8 +18,10 @@ import { Route as errors404RouteImport } from './routes/(errors)/404'
 import { Route as errors403RouteImport } from './routes/(errors)/403'
 import { Route as errors401RouteImport } from './routes/(errors)/401'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
+import { Route as AuthenticatedStockReportsIndexRouteImport } from './routes/_authenticated/stock-reports/index'
 import { Route as AuthenticatedLocationsIndexRouteImport } from './routes/_authenticated/locations/index'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients/index'
+import { Route as AuthenticatedClientMapIndexRouteImport } from './routes/_authenticated/client-map/index'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -65,6 +67,12 @@ const authLoginRoute = authLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedStockReportsIndexRoute =
+  AuthenticatedStockReportsIndexRouteImport.update({
+    id: '/stock-reports/',
+    path: '/stock-reports/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedLocationsIndexRoute =
   AuthenticatedLocationsIndexRouteImport.update({
     id: '/locations/',
@@ -77,6 +85,12 @@ const AuthenticatedClientsIndexRoute =
     path: '/clients/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedClientMapIndexRoute =
+  AuthenticatedClientMapIndexRouteImport.update({
+    id: '/client-map/',
+    path: '/client-map/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -87,8 +101,10 @@ export interface FileRoutesByFullPath {
   '/500': typeof errors500Route
   '/503': typeof errors503Route
   '/submit': typeof publicSubmitRoute
+  '/client-map/': typeof AuthenticatedClientMapIndexRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/locations/': typeof AuthenticatedLocationsIndexRoute
+  '/stock-reports/': typeof AuthenticatedStockReportsIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof authLoginRoute
@@ -99,8 +115,10 @@ export interface FileRoutesByTo {
   '/503': typeof errors503Route
   '/submit': typeof publicSubmitRoute
   '/': typeof AuthenticatedIndexRoute
+  '/client-map': typeof AuthenticatedClientMapIndexRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/locations': typeof AuthenticatedLocationsIndexRoute
+  '/stock-reports': typeof AuthenticatedStockReportsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -113,8 +131,10 @@ export interface FileRoutesById {
   '/(errors)/503': typeof errors503Route
   '/(public)/submit': typeof publicSubmitRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/client-map/': typeof AuthenticatedClientMapIndexRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/locations/': typeof AuthenticatedLocationsIndexRoute
+  '/_authenticated/stock-reports/': typeof AuthenticatedStockReportsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -127,8 +147,10 @@ export interface FileRouteTypes {
     | '/500'
     | '/503'
     | '/submit'
+    | '/client-map/'
     | '/clients/'
     | '/locations/'
+    | '/stock-reports/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -139,8 +161,10 @@ export interface FileRouteTypes {
     | '/503'
     | '/submit'
     | '/'
+    | '/client-map'
     | '/clients'
     | '/locations'
+    | '/stock-reports'
   id:
     | '__root__'
     | '/_authenticated'
@@ -152,8 +176,10 @@ export interface FileRouteTypes {
     | '/(errors)/503'
     | '/(public)/submit'
     | '/_authenticated/'
+    | '/_authenticated/client-map/'
     | '/_authenticated/clients/'
     | '/_authenticated/locations/'
+    | '/_authenticated/stock-reports/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -232,6 +258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/stock-reports/': {
+      id: '/_authenticated/stock-reports/'
+      path: '/stock-reports'
+      fullPath: '/stock-reports/'
+      preLoaderRoute: typeof AuthenticatedStockReportsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/locations/': {
       id: '/_authenticated/locations/'
       path: '/locations'
@@ -246,19 +279,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/client-map/': {
+      id: '/_authenticated/client-map/'
+      path: '/client-map'
+      fullPath: '/client-map/'
+      preLoaderRoute: typeof AuthenticatedClientMapIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedClientMapIndexRoute: typeof AuthenticatedClientMapIndexRoute
   AuthenticatedClientsIndexRoute: typeof AuthenticatedClientsIndexRoute
   AuthenticatedLocationsIndexRoute: typeof AuthenticatedLocationsIndexRoute
+  AuthenticatedStockReportsIndexRoute: typeof AuthenticatedStockReportsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedClientMapIndexRoute: AuthenticatedClientMapIndexRoute,
   AuthenticatedClientsIndexRoute: AuthenticatedClientsIndexRoute,
   AuthenticatedLocationsIndexRoute: AuthenticatedLocationsIndexRoute,
+  AuthenticatedStockReportsIndexRoute: AuthenticatedStockReportsIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

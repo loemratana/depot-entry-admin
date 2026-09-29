@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import {
   AlertCircle,
   Loader2,
+  MapPin,
   Pencil,
   Plus,
   RotateCw,
@@ -36,7 +38,7 @@ import {
   type Submission,
   type SubmissionFile,
 } from '../data/schema'
-import { formatPhone, formatSubmittedAt } from '../lib/format'
+import { formatDateTime, formatPhone, formatSubmittedAt } from '../lib/format'
 import { ClientDocuments } from './client-documents'
 
 type ClientDetailSheetProps = {
@@ -44,8 +46,9 @@ type ClientDetailSheetProps = {
   onOpenChange: (open: boolean) => void
   /** Row from the table; shown immediately while the full record loads */
   submission: Submission | null
-  onEdit: (client: Submission) => void
-  onDelete: (client: Submission) => void
+  /** Omit to hide the Edit / Delete buttons (e.g. on the map) */
+  onEdit?: (client: Submission) => void
+  onDelete?: (client: Submission) => void
 }
 
 function Section({
@@ -86,6 +89,65 @@ function Field({
         {children || <span className='text-muted-foreground'>—</span>}
       </dd>
     </div>
+  )
+}
+
+/** Site photos with GPS: coordinates, accuracy, capture time and a link to the map */
+function PhotoLocations({
+  submissionId,
+  files,
+  onNavigate,
+}: {
+  submissionId: string
+  files: SubmissionFile[]
+  /** Closes the sheet so the map is visible (it may already be the current page) */
+  onNavigate: () => void
+}) {
+  const geotagged = files.filter((file) => file.gps)
+  if (geotagged.length === 0) return null
+  return (
+    <>
+      <Separator />
+      <Section title='Site photo GPS'>
+        <ul className='flex flex-col gap-2'>
+          {geotagged.map((file, index) => {
+            const gps = file.gps!
+            const captured = formatDateTime(gps.capturedAt)
+            return (
+              <li
+                key={file.id}
+                className='flex items-start gap-3 rounded-md border px-3 py-2 text-sm'
+              >
+                <MapPin className='mt-0.5 size-4 shrink-0 text-muted-foreground' />
+                <div className='min-w-0 flex-1'>
+                  <p className='font-medium'>
+                    Photo {index + 1}{' '}
+                    <span className='ms-1.5 font-normal text-muted-foreground tabular-nums'>
+                      {gps.latitude.toFixed(6)}, {gps.longitude.toFixed(6)}
+                    </span>
+                  </p>
+                  <p className='text-xs text-muted-foreground'>
+                    {gps.accuracy != null &&
+                      `Accuracy ±${Math.round(gps.accuracy)} m`}
+                    {gps.accuracy != null && captured && ' · '}
+                    {captured && `Captured ${captured}`}
+                  </p>
+                </div>
+                <Button variant='outline' size='sm' asChild>
+                  <Link
+                    to='/client-map'
+                    search={{ submissionId, photoId: file.id }}
+                    onClick={onNavigate}
+                  >
+                    View on map
+                  </Link>
+                </Button>
+              </li>
+            )
+          })}
+        </ul>
+      </Section>
+    </>
   )
 }
 
@@ -143,23 +205,27 @@ export function ClientDetailSheet({
       <SheetContent className='w-full gap-0 sm:max-w-md'>
         <SheetHeader className='border-b'>
           <SheetTitle>Outlet Details</SheetTitle>
-          {client && (
+          {client && (onEdit || onDelete) && (
             <div className='flex gap-2 pt-1'>
-              <Button
-                size='sm'
-                variant='outline'
-                onClick={() => onEdit(client)}
-              >
-                <Pencil /> Edit
-              </Button>
-              <Button
-                size='sm'
-                variant='outline'
-                className='text-destructive hover:text-destructive'
-                onClick={() => onDelete(client)}
-              >
-                <Trash2 /> Delete
-              </Button>
+              {onEdit && (
+                <Button
+                  size='sm'
+                  variant='outline'
+                  onClick={() => onEdit(client)}
+                >
+                  <Pencil /> Edit
+                </Button>
+              )}
+              {onDelete && (
+                <Button
+                  size='sm'
+                  variant='outline'
+                  className='text-destructive hover:text-destructive'
+                  onClick={() => onDelete(client)}
+                >
+                  <Trash2 /> Delete
+                </Button>
+              )}
             </div>
           )}
           <SheetDescription className='sr-only'>
@@ -206,6 +272,14 @@ export function ClientDetailSheet({
                   </Field>
                 </dl>
               </Section>
+
+              {detail.data && (
+                <PhotoLocations
+                  submissionId={detail.data.id}
+                  files={detail.data.files}
+                  onNavigate={() => onOpenChange(false)}
+                />
+              )}
 
               <Separator />
 

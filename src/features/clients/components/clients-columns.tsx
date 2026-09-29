@@ -1,16 +1,9 @@
 import { type ColumnDef } from '@tanstack/react-table'
-import { Eye, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { Eye, MapIcon, Pencil, Trash2 } from 'lucide-react'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { type Submission } from '../data/schema'
 import { formatPhone, formatSubmittedAt, locationName } from '../lib/format'
+import { ActionButton } from './action-button'
 
 const empty = <span className='text-muted-foreground'>—</span>
 
@@ -21,12 +14,14 @@ function renderLocation(value: Submission['province']) {
 
 export type ClientRowActions = {
   onView: (submission: Submission) => void
+  onViewMap: (submission: Submission) => void
   onEdit: (submission: Submission) => void
   onDelete: (submission: Submission) => void
 }
 
 export function getClientsColumns({
   onView,
+  onViewMap,
   onEdit,
   onDelete,
 }: ClientRowActions): ColumnDef<Submission>[] {
@@ -100,37 +95,51 @@ export function getClientsColumns({
     {
       id: 'actions',
       header: () => <span className='sr-only'>Actions</span>,
-      cell: ({ row }) => (
-        // The row itself also opens details; stop clicks here from doing that too
-        <div onClick={(event) => event.stopPropagation()}>
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild>
-              <Button variant='ghost' size='icon' className='size-8'>
-                <MoreHorizontal className='size-4' />
-                <span className='sr-only'>
-                  Actions for {row.original.clientName}
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='end'>
-              <DropdownMenuItem onSelect={() => onView(row.original)}>
-                <Eye /> View details
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onEdit(row.original)}>
-                <Pencil /> Edit
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                variant='destructive'
-                onSelect={() => onDelete(row.original)}
-              >
-                <Trash2 /> Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      ),
-      meta: { className: 'w-12 text-end' },
+      cell: ({ row }) => {
+        const outlet = row.original
+        return (
+          // The row itself also opens details; stop clicks here from doing that too
+          <div
+            className='flex justify-end gap-1.5'
+            onClick={(event) => event.stopPropagation()}
+          >
+            <ActionButton
+              label={`View details of ${outlet.clientName}`}
+              className='bg-[#5027F5] hover:bg-[#4119d9]'
+              onClick={() => onView(outlet)}
+            >
+              <Eye />
+            </ActionButton>
+            <ActionButton
+              label={
+                outlet.hasGps
+                  ? `View ${outlet.clientName} on the map`
+                  : `${outlet.clientName} has no GPS photo to show on the map`
+              }
+              className='bg-sky-600 hover:bg-sky-700'
+              disabled={!outlet.hasGps}
+              onClick={() => onViewMap(outlet)}
+            >
+              <MapIcon />
+            </ActionButton>
+            <ActionButton
+              label={`Edit ${outlet.clientName}`}
+              className='bg-amber-500 hover:bg-amber-600'
+              onClick={() => onEdit(outlet)}
+            >
+              <Pencil />
+            </ActionButton>
+            <ActionButton
+              label={`Delete ${outlet.clientName}`}
+              className='bg-red-600 hover:bg-red-700'
+              onClick={() => onDelete(outlet)}
+            >
+              <Trash2 />
+            </ActionButton>
+          </div>
+        )
+      },
+      meta: { className: 'w-40 text-end' },
     },
   ]
 }

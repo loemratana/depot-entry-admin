@@ -54,46 +54,53 @@ function SummaryStrip() {
       label: 'Provinces',
       kh: 'ខេត្ត/ក្រុង',
       icon: Map,
+      iconBg: 'bg-[#5027F5]',
       count: data?.provinces,
     },
     {
       label: 'Districts',
       kh: 'ខណ្ឌ/ស្រុក',
       icon: Building2,
+      iconBg: 'bg-sky-600',
       count: data?.districts,
     },
     {
       label: 'Communes',
       kh: 'ឃុំ/ភូមិ',
       icon: House,
+      iconBg: 'bg-emerald-600',
       count: data?.communes,
     },
   ]
 
   return (
     <div className='grid gap-4 sm:grid-cols-3'>
-      {items.map(({ label, kh, icon: Icon, count }) => (
-        <Card key={label} className='gap-0 py-0'>
+      {items.map(({ label, kh, icon: Icon, iconBg, count }) => (
+        // Whole card in the solid colour, white text
+        <Card
+          key={label}
+          className={cn('gap-0 border-0 py-0 text-white shadow-sm', iconBg)}
+        >
           <CardContent className='flex items-start justify-between gap-4 p-6'>
             <div className='grid gap-1'>
-              <span className='text-sm font-medium text-muted-foreground'>
+              <span className='text-sm font-medium text-white/85'>
                 {label} · {kh}
               </span>
               {isLoading ? (
-                <Skeleton className='my-1 h-10 w-24' />
+                <Skeleton className='my-1 h-10 w-24 bg-white/25' />
               ) : (
                 <span className='text-4xl font-bold tracking-tight tabular-nums'>
                   {isError ? '—' : (count?.total ?? 0).toLocaleString()}
                 </span>
               )}
-              <span className='text-xs text-muted-foreground'>
+              <span className='text-xs text-white/80'>
                 {count
                   ? `${count.active.toLocaleString()} active · ${(count.total - count.active).toLocaleString()} inactive`
                   : ' '}
               </span>
             </div>
-            <div className='flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted'>
-              <Icon className='size-6 text-muted-foreground' />
+            <div className='flex size-12 shrink-0 items-center justify-center rounded-lg bg-white/20 text-white'>
+              <Icon className='size-6' />
             </div>
           </CardContent>
         </Card>
@@ -309,8 +316,8 @@ export function Locations() {
                       </p>
                     </div>
                     <Button
-                      variant='ghost'
                       size='icon'
+                      className='size-8 bg-red-600 text-white hover:bg-red-700'
                       onClick={clear}
                       disabled={busy}
                       aria-label='Remove file'

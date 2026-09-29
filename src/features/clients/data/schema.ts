@@ -81,6 +81,15 @@ export type NamedLocation = {
 
 export type FileKind = 'image' | 'pdf' | 'other'
 
+/** Device-reported GPS of a site photo (null for documents and older submissions) */
+export type FileGps = {
+  photoId: string | null
+  latitude: number
+  longitude: number
+  accuracy: number | null
+  capturedAt: string | null
+}
+
 export type SubmissionFile = {
   id: string
   name: string
@@ -92,6 +101,7 @@ export type SubmissionFile = {
   uploadedAt: string | null
   /** Added by an admin (true) or sent by the client from the public form */
   uploadedByAdmin: boolean
+  gps: FileGps | null
 }
 
 export type Submission = {
@@ -105,6 +115,8 @@ export type Submission = {
   saleGb: { id: string | null; name: string } | null
   submittedAt: string | null
   files: SubmissionFile[]
+  /** Has at least one GPS site photo, so it can be shown on the map */
+  hasGps: boolean
 }
 
 /* ------------------------------------------------------------------ */
@@ -163,6 +175,23 @@ function fileKind(mimeType: string, name: string): FileKind {
   return 'other'
 }
 
+function toGps(value: unknown): FileGps | null {
+  const raw = asRecord(value)
+  const latitude = Number(raw?.latitude)
+  const longitude = Number(raw?.longitude)
+  if (!raw || !Number.isFinite(latitude) || !Number.isFinite(longitude))
+    return null
+  const accuracy = Number(raw.accuracy)
+  return {
+    photoId: str(raw.photoId) || null,
+    latitude,
+    longitude,
+    accuracy:
+      raw.accuracy != null && Number.isFinite(accuracy) ? accuracy : null,
+    capturedAt: str(raw.capturedAt) || null,
+  }
+}
+
 function toFile(value: unknown, index: number): SubmissionFile | null {
   const raw = asRecord(value)
   if (!raw) return null
@@ -181,6 +210,7 @@ function toFile(value: unknown, index: number): SubmissionFile | null {
     kind: fileKind(mimeType, name),
     uploadedAt: str(raw.uploadedAt) || null,
     uploadedByAdmin: raw.uploadedByAdmin === true,
+    gps: toGps(raw.gps),
   }
 }
 
@@ -202,6 +232,9 @@ export function normalizeSubmission(value: unknown): Submission {
     commune: toLocation(raw, 'commune'),
     saleGb: toSaleGb(raw),
     submittedAt: str(raw.submittedAt) || str(raw.createdAt) || null,
+    hasGps:
+      raw.hasGps === true ||
+      files.some((file) => asRecord(asRecord(file)?.gps) !== null),
     files: files
       .map(toFile)
       .filter((file): file is SubmissionFile => file !== null),
