@@ -34,8 +34,8 @@ const FOCUS_ZOOM = 16
 const FIT_MAX_ZOOM = 15
 
 // Card size: photo on top, outlet name underneath, small pointer at the bottom
-const CARD_WIDTH = 96
-const CARD_HEIGHT = 92 // photo 64 + name 20 + pointer 8
+const CARD_WIDTH = 64
+const CARD_HEIGHT = 66 // borders 4 + photo 40 + name 16 + pointer 6
 
 /** Outlet names come from the public form, so they are escaped before going into HTML */
 const escapeHtml = (text: string) =>

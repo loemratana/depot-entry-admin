@@ -12,7 +12,7 @@ const FORM_MESSAGES = {
 
 const navigate = vi.fn()
 const setUserMock = vi.fn()
-const setAccessTokenMock = vi.fn()
+const setSessionMock = vi.fn()
 const loginMock = vi.hoisted(() => vi.fn())
 
 const admin = {
@@ -26,7 +26,7 @@ vi.mock('@/stores/auth-store', () => ({
   useAuthStore: () => ({
     auth: {
       setUser: setUserMock,
-      setAccessToken: setAccessTokenMock,
+      setSession: setSessionMock,
     },
   }),
 }))
@@ -59,7 +59,9 @@ describe('UserAuthForm', () => {
     loginMock.mockResolvedValue({
       token: 'jwt-token',
       tokenType: 'Bearer',
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      expiresAt: '2026-10-14T00:00:00.000Z',
+      refreshToken: 'refresh-token',
+      refreshExpiresAt: '2026-10-30T00:00:00.000Z',
       admin,
     })
   })
@@ -110,10 +112,13 @@ describe('UserAuthForm', () => {
         password: 'secret',
       })
       expect(setUserMock).toHaveBeenCalledWith(admin)
-      expect(setAccessTokenMock).toHaveBeenCalledWith(
-        'jwt-token',
-        expect.any(Number)
-      )
+      expect(setSessionMock).toHaveBeenCalledWith({
+        token: 'jwt-token',
+        tokenType: 'Bearer',
+        expiresAt: '2026-10-14T00:00:00.000Z',
+        refreshToken: 'refresh-token',
+        refreshExpiresAt: '2026-10-30T00:00:00.000Z',
+      })
       await vi.waitFor(() =>
         expect(navigate).toHaveBeenCalledWith({
           href: '/clients',
@@ -137,7 +142,7 @@ describe('UserAuthForm', () => {
       await expect
         .element(screen.getByText('Invalid email or password'))
         .toBeInTheDocument()
-      expect(setAccessTokenMock).not.toHaveBeenCalled()
+      expect(setSessionMock).not.toHaveBeenCalled()
       expect(navigate).not.toHaveBeenCalled()
     })
   })

@@ -1,5 +1,6 @@
 import { clearCookies } from '@/test-utils/cookies'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { setCookie } from '@/lib/cookies'
 
 async function importAuthStore() {
   const { useAuthStore } = await import('./auth-store')
@@ -72,5 +73,52 @@ describe('useAuthStore', () => {
 
     expect(useAuthStoreAfterReload.getState().auth.user).toBeNull()
     expect(useAuthStoreAfterReload.getState().auth.accessToken).toBe('')
+  })
+})
+
+describe('useAuthStore sessions (access + refresh token)', () => {
+  beforeEach(() => {
+    clearCookies()
+    vi.resetModules()
+  })
+
+  const session = {
+    token: 'access-1',
+    expiresAt: new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString(),
+    refreshToken: 'refresh-1',
+    refreshExpiresAt: new Date(
+      Date.now() + 30 * 24 * 3600 * 1000
+    ).toISOString(),
+  }
+
+  it('setSession persists both tokens; reset clears both', async () => {
+    const useAuthStore = await importAuthStore()
+    useAuthStore.getState().auth.setSession(session)
+
+    vi.resetModules()
+    const reloaded = await importAuthStore()
+    expect(reloaded.getState().auth.accessToken).toBe('access-1')
+    expect(reloaded.getState().auth.refreshToken).toBe('refresh-1')
+
+    reloaded.getState().auth.reset()
+    vi.resetModules()
+    const cleared = await importAuthStore()
+    expect(cleared.getState().auth.accessToken).toBe('')
+    expect(cleared.getState().auth.refreshToken).toBe('')
+  })
+
+  it('syncFromCookies picks up tokens stored by another tab', async () => {
+    const useAuthStore = await importAuthStore()
+    useAuthStore.getState().auth.setSession(session)
+
+    // Another tab refreshes and writes new cookies
+    const cookie = (value: string) => encodeURIComponent(JSON.stringify(value))
+    setCookie('cm_admin_token', cookie('access-2'))
+    setCookie('cm_admin_refresh', cookie('refresh-2'))
+
+    expect(useAuthStore.getState().auth.refreshToken).toBe('refresh-1')
+    useAuthStore.getState().auth.syncFromCookies()
+    expect(useAuthStore.getState().auth.accessToken).toBe('access-2')
+    expect(useAuthStore.getState().auth.refreshToken).toBe('refresh-2')
   })
 })

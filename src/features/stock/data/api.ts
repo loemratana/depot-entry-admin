@@ -33,6 +33,8 @@ export type StockCatalog = {
     nameKh: string
     /** The quantities asked for this brand's products */
     measures: MeasureKey[]
+    /** Relative to /api; turn into a full URL with apiUrl(). null = no logo */
+    logoUrl: string | null
     products: { id: string; name: string }[]
   }[]
 }

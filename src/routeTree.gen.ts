@@ -19,6 +19,7 @@ import { Route as errors403RouteImport } from './routes/(errors)/403'
 import { Route as errors401RouteImport } from './routes/(errors)/401'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as AuthenticatedStockReportsIndexRouteImport } from './routes/_authenticated/stock-reports/index'
+import { Route as AuthenticatedProductsIndexRouteImport } from './routes/_authenticated/products/index'
 import { Route as AuthenticatedLocationsIndexRouteImport } from './routes/_authenticated/locations/index'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients/index'
 import { Route as AuthenticatedClientMapIndexRouteImport } from './routes/_authenticated/client-map/index'
@@ -73,6 +74,12 @@ const AuthenticatedStockReportsIndexRoute =
     path: '/stock-reports/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedProductsIndexRoute =
+  AuthenticatedProductsIndexRouteImport.update({
+    id: '/products/',
+    path: '/products/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedLocationsIndexRoute =
   AuthenticatedLocationsIndexRouteImport.update({
     id: '/locations/',
@@ -104,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/client-map/': typeof AuthenticatedClientMapIndexRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/locations/': typeof AuthenticatedLocationsIndexRoute
+  '/products/': typeof AuthenticatedProductsIndexRoute
   '/stock-reports/': typeof AuthenticatedStockReportsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -118,6 +126,7 @@ export interface FileRoutesByTo {
   '/client-map': typeof AuthenticatedClientMapIndexRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/locations': typeof AuthenticatedLocationsIndexRoute
+  '/products': typeof AuthenticatedProductsIndexRoute
   '/stock-reports': typeof AuthenticatedStockReportsIndexRoute
 }
 export interface FileRoutesById {
@@ -134,6 +143,7 @@ export interface FileRoutesById {
   '/_authenticated/client-map/': typeof AuthenticatedClientMapIndexRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/locations/': typeof AuthenticatedLocationsIndexRoute
+  '/_authenticated/products/': typeof AuthenticatedProductsIndexRoute
   '/_authenticated/stock-reports/': typeof AuthenticatedStockReportsIndexRoute
 }
 export interface FileRouteTypes {
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/client-map/'
     | '/clients/'
     | '/locations/'
+    | '/products/'
     | '/stock-reports/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/client-map'
     | '/clients'
     | '/locations'
+    | '/products'
     | '/stock-reports'
   id:
     | '__root__'
@@ -179,6 +191,7 @@ export interface FileRouteTypes {
     | '/_authenticated/client-map/'
     | '/_authenticated/clients/'
     | '/_authenticated/locations/'
+    | '/_authenticated/products/'
     | '/_authenticated/stock-reports/'
   fileRoutesById: FileRoutesById
 }
@@ -265,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedStockReportsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/products/': {
+      id: '/_authenticated/products/'
+      path: '/products'
+      fullPath: '/products/'
+      preLoaderRoute: typeof AuthenticatedProductsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/locations/': {
       id: '/_authenticated/locations/'
       path: '/locations'
@@ -294,6 +314,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientMapIndexRoute: typeof AuthenticatedClientMapIndexRoute
   AuthenticatedClientsIndexRoute: typeof AuthenticatedClientsIndexRoute
   AuthenticatedLocationsIndexRoute: typeof AuthenticatedLocationsIndexRoute
+  AuthenticatedProductsIndexRoute: typeof AuthenticatedProductsIndexRoute
   AuthenticatedStockReportsIndexRoute: typeof AuthenticatedStockReportsIndexRoute
 }
 
@@ -302,6 +323,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientMapIndexRoute: AuthenticatedClientMapIndexRoute,
   AuthenticatedClientsIndexRoute: AuthenticatedClientsIndexRoute,
   AuthenticatedLocationsIndexRoute: AuthenticatedLocationsIndexRoute,
+  AuthenticatedProductsIndexRoute: AuthenticatedProductsIndexRoute,
   AuthenticatedStockReportsIndexRoute: AuthenticatedStockReportsIndexRoute,
 }
 

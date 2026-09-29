@@ -51,16 +51,8 @@ export function UserAuthForm({
 
   const loginMutation = useMutation({
     mutationFn: login,
-    onSuccess: ({ token, expiresAt, admin }) => {
-      const secondsLeft = Math.floor(
-        (new Date(expiresAt).getTime() - Date.now()) / 1000
-      )
-      auth.setAccessToken(
-        token,
-        Number.isFinite(secondsLeft) && secondsLeft > 0
-          ? secondsLeft
-          : undefined
-      )
+    onSuccess: ({ admin, ...session }) => {
+      auth.setSession(session)
       auth.setUser(admin)
       queryClient.setQueryData(currentAdminQueryOptions.queryKey, admin)
 

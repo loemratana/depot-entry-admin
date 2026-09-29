@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query'
-import { type AuthUser } from '@/stores/auth-store'
+import { useAuthStore, type AuthUser } from '@/stores/auth-store'
 import { apiClient, type ApiResponse } from '@/lib/api-client'
 
 export type LoginInput = {
@@ -10,7 +10,11 @@ export type LoginInput = {
 export type LoginResult = {
   token: string
   tokenType: 'Bearer'
+  /** Access token expiry (14 days) */
   expiresAt: string
+  refreshToken: string
+  /** Refresh token expiry (30 days) */
+  refreshExpiresAt: string
   admin: AuthUser
 }
 
@@ -27,8 +31,13 @@ export async function getCurrentAdmin() {
   return res.data.data
 }
 
+/** Revokes the access token and, when present, the refresh session */
 export async function logout() {
-  await apiClient.post('/admin/auth/logout')
+  const { refreshToken } = useAuthStore.getState().auth
+  await apiClient.post(
+    '/admin/auth/logout',
+    refreshToken ? { refreshToken } : undefined
+  )
 }
 
 export const currentAdminQueryOptions = queryOptions({

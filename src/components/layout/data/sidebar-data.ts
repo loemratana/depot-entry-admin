@@ -1,4 +1,4 @@
-import { MapIcon, MapPin, Package, Users } from 'lucide-react'
+import { MapIcon, MapPin, Package, Tags, Users } from 'lucide-react'
 import { type SidebarData } from '../types'
 
 export const sidebarData: SidebarData = {
@@ -20,6 +20,11 @@ export const sidebarData: SidebarData = {
           title: 'Stock',
           url: '/stock-reports',
           icon: Package,
+        },
+        {
+          title: 'Brands & Products',
+          url: '/products',
+          icon: Tags,
         },
         {
           title: 'Locations',
