@@ -33,28 +33,49 @@ const SINGLE_POINT_ZOOM = 15
 const FOCUS_ZOOM = 16
 const FIT_MAX_ZOOM = 15
 
+// Card size: photo on top, outlet name underneath, small pointer at the bottom
+const CARD_WIDTH = 96
+const CARD_HEIGHT = 92 // photo 64 + name 20 + pointer 8
+
+/** Outlet names come from the public form, so they are escaped before going into HTML */
+const escapeHtml = (text: string) =>
+  text.replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
+        c
+      ]!
+  )
+
 /*
  * Markers are plain HTML (divIcon), so Leaflet's default PNG marker, which
- * Vite does not resolve, is never used. A small dot normally, larger when
- * selected; numbered when the capture sequence is shown.
+ * Vite does not resolve, is never used. Each marker is a small card with the
+ * site photo and the outlet name; numbered when the capture sequence is shown.
+ * The photo loads lazily; if it cannot load, a grey placeholder stays.
  */
 const iconCache = new Map<string, L.DivIcon>()
-function markerIcon(label: number | undefined, selected: boolean) {
-  const key = `${label ?? ''}|${selected}`
+function markerIcon(
+  point: MapPoint,
+  label: number | undefined,
+  selected: boolean
+) {
+  const key = `${point.id}|${point.photoUrl}|${point.clientName}|${label ?? ''}|${selected}`
   let icon = iconCache.get(key)
   if (!icon) {
-    const size = label ? (selected ? 28 : 22) : selected ? 22 : 16
-    const classes = [
-      'outlet-marker',
-      label ? 'outlet-marker--numbered' : '',
-      selected ? 'outlet-marker--selected' : '',
-    ].join(' ')
+    const name = escapeHtml(point.clientName)
+    const photo = escapeHtml(point.photoUrl)
     icon = L.divIcon({
       className: '',
-      html: `<span class="${classes}">${label ?? ''}</span>`,
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2],
-      popupAnchor: [0, -size / 2 - 2],
+      html:
+        `<div class="outlet-card${selected ? ' outlet-card--selected' : ''}">` +
+        `<div class="outlet-card__photo"><img src="${photo}" alt="" loading="lazy" decoding="async" onerror="this.remove()"></div>` +
+        `<div class="outlet-card__name" title="${name}">${name}</div>` +
+        (label ? `<span class="outlet-card__number">${label}</span>` : '') +
+        `</div>`,
+      iconSize: [CARD_WIDTH, CARD_HEIGHT],
+      // The pointer tip sits exactly on the GPS position
+      iconAnchor: [CARD_WIDTH / 2, CARD_HEIGHT],
+      popupAnchor: [0, -CARD_HEIGHT - 4],
     })
     iconCache.set(key, icon)
   }
@@ -247,6 +268,7 @@ export const OutletMap = memo(function OutletMap({
             key={point.id}
             position={[point.latitude, point.longitude]}
             icon={markerIcon(
+              point,
               number,
               point.id === openId || (!openId && point.id === focusId)
             )}
