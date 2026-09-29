@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { format } from 'date-fns'
 import {
-  AlertTriangle,
-  CheckCircle2,
+  Check,
   FileText,
   ImagePlus,
   Loader2,
@@ -21,27 +19,15 @@ import {
   createIdempotencyKey,
   mergeFiles,
 } from '../lib/files'
-import {
-  GPS_ERROR_MESSAGES,
-  GpsError,
-  type GpsErrorCode,
-  type GpsReading,
-  isLowAccuracy,
-  readGps,
-} from '../lib/geolocation'
+import { GPS_ERROR_MESSAGES, GpsError, readGps } from '../lib/geolocation'
+import { compressImage } from '../lib/image'
+import { type SitePhoto, isSitePhotoReady } from '../lib/site-photo'
 import { SitePhotoDialog } from './site-photo-dialog'
 
-/** One site photo with its own id and its own GPS reading */
-export type SitePhoto = {
-  /** Client-generated; the backend matches GPS to the photo by this id */
-  photoId: string
-  file: File
-  status: 'locating' | 'ready' | 'failed'
-  gps?: GpsReading
-  error?: GpsErrorCode
-}
+export type { SitePhoto }
 
 const SITE_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const TOO_LARGE = `ធំជាង ${MAX_FILE_SIZE_MB}MB · Larger than ${MAX_FILE_SIZE_MB} MB`
 
 type SitePhotosProps = {
   value: SitePhoto[]
@@ -66,61 +52,11 @@ function usePreviews(photos: SitePhoto[]) {
   return previews
 }
 
-function checkPhoto(file: File): string | null {
-  if (!SITE_PHOTO_TYPES.includes(file.type))
-    return 'ប្រភេទឯកសារមិនត្រូវបានអនុញ្ញាត · Only JPG, PNG, WebP or PDF'
-  if (file.size === 0) return 'ឯកសារទទេ · File is empty'
-  if (file.size > MAX_FILE_SIZE_BYTES)
-    return `ធំជាង ${MAX_FILE_SIZE_MB}MB · Larger than ${MAX_FILE_SIZE_MB} MB`
-  return null
-}
-
-function GpsStatus({ photo }: { photo: SitePhoto }) {
-  if (photo.status === 'locating') {
-    return (
-      <p className='flex items-center gap-1.5 text-sm text-muted-foreground'>
-        <Loader2 className='size-4 animate-spin' />
-        កំពុងរកទីតាំង · Getting location...
-      </p>
-    )
-  }
-  if (photo.status === 'failed' || !photo.gps) {
-    return (
-      <p className='flex items-start gap-1.5 text-sm text-destructive'>
-        <MapPinOff className='mt-0.5 size-4 shrink-0' />
-        <span>{GPS_ERROR_MESSAGES[photo.error ?? 'unavailable']}</span>
-      </p>
-    )
-  }
-  const low = isLowAccuracy(photo.gps)
-  return (
-    <div className='grid gap-0.5 text-sm'>
-      <p className='flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400'>
-        <CheckCircle2 className='size-4' />
-        GPS captured
-      </p>
-      <p
-        className={cn(
-          'flex items-center gap-1.5 text-muted-foreground',
-          low && 'text-amber-700 dark:text-amber-400'
-        )}
-      >
-        {low && <AlertTriangle className='size-4 shrink-0' />}
-        Accuracy: ±{Math.round(photo.gps.accuracy)} m
-        {low && ' · ភាពត្រឹមត្រូវទាប · Low accuracy'}
-      </p>
-      <p className='text-muted-foreground'>
-        Captured: {format(new Date(photo.gps.capturedAt), 'd MMM yyyy, h:mm a')}
-      </p>
-    </div>
-  )
-}
-
 /**
  * The form's single upload box. Clicking it offers Upload or Take photo
- * (in-page camera, which asks for camera permission). Photos get GPS right
- * after they are added (never on page load), each its own reading; PDFs are
- * kept as documents without GPS.
+ * (in-page camera, which asks for camera permission). Each photo is shrunk on
+ * the device and gets its own GPS reading (never requested on page load); a
+ * spinner shows until both are done. PDFs are kept as documents without GPS.
  */
 export function SitePhotos({
   value,
@@ -137,23 +73,38 @@ export function SitePhotos({
   const [problems, setProblems] = useState<FileProblem[]>([])
   const previews = usePreviews(value)
 
-  const locate = (photoIds: string[]) => {
+  const patch = (photoIds: string[], changes: Partial<SitePhoto>) => {
     const ids = new Set(photoIds)
-    const set = (patch: Partial<SitePhoto>) =>
-      onUpdate((photos) =>
-        photos.map((p) => (ids.has(p.photoId) ? { ...p, ...patch } : p))
-      )
+    onUpdate((photos) =>
+      photos.map((p) => (ids.has(p.photoId) ? { ...p, ...changes } : p))
+    )
+  }
 
-    set({ status: 'locating', error: undefined })
+  const locate = (photoIds: string[]) => {
+    patch(photoIds, { status: 'locating', error: undefined })
     readGps().then(
-      (gps) => set({ status: 'ready', gps, error: undefined }),
+      (gps) => patch(photoIds, { status: 'ready', gps, error: undefined }),
       (error: unknown) =>
-        set({
+        patch(photoIds, {
           status: 'failed',
           gps: undefined,
           error: error instanceof GpsError ? error.code : 'unavailable',
         })
     )
+  }
+
+  // Shrinks one photo; drops it if it is still too large afterwards
+  const prepare = async (photo: SitePhoto) => {
+    const file = await compressImage(photo.file)
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      onUpdate((photos) => photos.filter((p) => p.photoId !== photo.photoId))
+      setProblems((prev) => [
+        ...prev,
+        { name: photo.file.name, reason: TOO_LARGE },
+      ])
+      return
+    }
+    patch([photo.photoId], { file, preparing: false })
   }
 
   const add = (picked: File[]) => {
@@ -162,8 +113,13 @@ export function SitePhotos({
     const added: SitePhoto[] = []
     const isPdf = (file: File) => file.type === 'application/pdf'
     for (const file of picked.filter((file) => !isPdf(file))) {
-      const reason = checkPhoto(file)
-      if (reason) found.push({ name: file.name, reason })
+      if (!SITE_PHOTO_TYPES.includes(file.type))
+        found.push({
+          name: file.name,
+          reason: 'ប្រភេទឯកសារមិនត្រូវបានអនុញ្ញាត · Only JPG, PNG, WebP or PDF',
+        })
+      else if (file.size === 0)
+        found.push({ name: file.name, reason: 'ឯកសារទទេ · File is empty' })
       else if (added.length >= remaining)
         found.push({
           name: file.name,
@@ -174,6 +130,7 @@ export function SitePhotos({
           photoId: createIdempotencyKey(),
           file,
           status: 'locating',
+          preparing: true,
         })
     }
     const pdfs = picked.filter(isPdf)
@@ -191,14 +148,23 @@ export function SitePhotos({
     setProblems(found)
     if (!added.length) return
     onUpdate((photos) => [...photos, ...added])
-    // Photos taken together share one fresh reading; each still stores its own copy
+    // Shrinking and GPS run at the same time; photos taken together share one reading
     locate(added.map((p) => p.photoId))
+    for (const photo of added) void prepare(photo)
   }
 
   const remove = (photoId: string) => {
     setProblems([])
     onUpdate((photos) => photos.filter((p) => p.photoId !== photoId))
   }
+
+  const failedMessages = [
+    ...new Set(
+      value
+        .filter((p) => p.status === 'failed')
+        .map((p) => GPS_ERROR_MESSAGES[p.error ?? 'unavailable'])
+    ),
+  ]
 
   return (
     <div className='grid min-w-0 gap-3'>
@@ -263,45 +229,82 @@ export function SitePhotos({
       )}
 
       {value.length > 0 && (
-        <ul className='grid min-w-0 gap-3'>
-          {value.map((photo) => (
-            <li
-              key={photo.photoId}
-              className='flex min-w-0 flex-col gap-3 rounded-md border p-3 sm:flex-row'
-            >
-              <img
-                src={previews.get(photo.file)}
-                alt='Site photo'
-                className='aspect-4/3 w-full shrink-0 rounded bg-muted object-cover sm:w-36'
-              />
-              <div className='flex min-w-0 flex-1 flex-col justify-between gap-2'>
-                <GpsStatus photo={photo} />
-                <div className='flex flex-wrap gap-2'>
-                  {(photo.status === 'failed' ||
-                    (photo.gps && isLowAccuracy(photo.gps))) && (
+        <ul className='grid grid-cols-3 gap-2 sm:grid-cols-4'>
+          {value.map((photo) => {
+            const busy = photo.status === 'locating' || photo.preparing
+            const failed = photo.status === 'failed'
+            const ready = isSitePhotoReady(photo)
+            return (
+              <li
+                key={photo.photoId}
+                className={cn(
+                  'relative aspect-square overflow-hidden rounded-md border bg-muted',
+                  failed && 'border-destructive'
+                )}
+                data-state={ready ? 'ready' : failed ? 'failed' : 'loading'}
+              >
+                <img
+                  src={previews.get(photo.file)}
+                  alt='Site photo'
+                  className='size-full object-cover'
+                />
+
+                {busy && (
+                  <div
+                    className='absolute inset-0 flex items-center justify-center bg-black/40'
+                    role='status'
+                    aria-label='Loading'
+                  >
+                    <Loader2 className='size-6 animate-spin text-white' />
+                  </div>
+                )}
+
+                {failed && (
+                  <div className='absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/55 p-1'>
+                    <MapPinOff className='size-5 text-white' />
                     <Button
                       type='button'
-                      variant='outline'
                       size='sm'
+                      className='h-7 bg-white px-2 text-xs text-black hover:bg-white/90'
                       disabled={disabled}
                       onClick={() => locate([photo.photoId])}
                     >
                       <RotateCw />
-                      Retry location
+                      Retry
                     </Button>
-                  )}
-                  <Button
-                    type='button'
-                    variant='ghost'
-                    size='sm'
-                    disabled={disabled}
-                    onClick={() => remove(photo.photoId)}
+                  </div>
+                )}
+
+                {ready && (
+                  <span
+                    className='absolute start-1 bottom-1 flex size-5 items-center justify-center rounded-full bg-emerald-600 text-white'
+                    title='Ready'
                   >
-                    <X />
-                    Remove
-                  </Button>
-                </div>
-              </div>
+                    <Check className='size-3.5' />
+                  </span>
+                )}
+
+                <button
+                  type='button'
+                  disabled={disabled}
+                  onClick={() => remove(photo.photoId)}
+                  aria-label='Remove photo'
+                  className='absolute end-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 disabled:opacity-50'
+                >
+                  <X className='size-3.5' />
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      {failedMessages.length > 0 && (
+        <ul className='grid gap-1 text-sm text-destructive'>
+          {failedMessages.map((message) => (
+            <li key={message} className='flex items-start gap-1.5'>
+              <MapPinOff className='mt-0.5 size-4 shrink-0' />
+              {message}
             </li>
           ))}
         </ul>

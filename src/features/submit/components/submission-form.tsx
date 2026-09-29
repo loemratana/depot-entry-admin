@@ -51,8 +51,9 @@ import {
   createIdempotencyKey,
   normalizePhone,
 } from '../lib/files'
+import { type SitePhoto, isSitePhotoReady } from '../lib/site-photo'
 import { type Option, OptionCombobox } from './option-combobox'
-import { type SitePhoto, SitePhotos } from './site-photos'
+import { SitePhotos } from './site-photos'
 
 const required = (message: string) => z.string().min(1, message)
 
@@ -98,7 +99,7 @@ const formSchema = z
     // Every site photo needs its GPS before the form can be sent
     sitePhotos: z
       .array(z.custom<SitePhoto>())
-      .refine((photos) => photos.every((p) => p.status === 'ready' && p.gps), {
+      .refine((photos) => photos.every(isSitePhotoReady), {
         message:
           'សូមរង់ចាំ GPS ឬលុបរូបថតដែលគ្មានទីតាំង · Wait for GPS, or remove photos without a location',
       }),
