@@ -183,7 +183,8 @@ function BrandStep({
 }) {
   return (
     <div className='grid gap-5'>
-      <div className='grid gap-0.5'>
+      {/* The brand logo is shown in the page header (see onStockStepChange) */}
+      <div className='grid min-w-0 gap-0.5'>
         <h3 className='text-base font-semibold text-primary'>
           {brand.nameKh ? `${brand.nameKh} | ${brand.name}` : brand.name}
         </h3>
@@ -252,9 +253,19 @@ function BilingualLabel({
 
 type SubmissionFormProps = {
   onSuccess: (result: SubmitClientResult) => void
+  /**
+   * Tells the page which stock step is showing, so it can change its heading
+   * and show the brand logo: null = not a stock step; brand null = still loading
+   */
+  onStockStepChange?: (stockStep: StockStep | null) => void
 }
 
-export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
+export type StockStep = { brand: Brand | null }
+
+export function SubmissionForm({
+  onSuccess,
+  onStockStepChange,
+}: SubmissionFormProps) {
   // One key per filled-in form, so retries and double taps never create duplicates
   const idempotencyKey = useRef(createIdempotencyKey())
   const [progress, setProgress] = useState(0)
@@ -316,6 +327,12 @@ export function SubmissionForm({ onSuccess }: SubmissionFormProps) {
   const steps = useMemo(() => buildSteps(catalog.data), [catalog.data])
   const lastStep = steps.length - 1
   const current = steps[Math.min(step, lastStep)]
+  const onStockStep =
+    current.kind === 'brand' || current.kind === 'stockPending'
+  const stockBrand = current.kind === 'brand' ? current.brand : null
+  useEffect(() => {
+    onStockStepChange?.(onStockStep ? { brand: stockBrand } : null)
+  }, [onStockStep, stockBrand, onStockStepChange])
   const stepOf = (field: string) =>
     steps.findIndex((s) => (s.fields as string[]).includes(field))
   const districts = useDistricts(provinceId || undefined)
