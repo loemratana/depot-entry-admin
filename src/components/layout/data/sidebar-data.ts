@@ -4,10 +4,10 @@ import { type SidebarData } from '../types'
 export const sidebarData: SidebarData = {
   navGroups: [
     {
-      title: 'Client System',
+      title: 'Outlet System',
       items: [
         {
-          title: 'Clients',
+          title: 'Outlet',
           url: '/clients',
           icon: Users,
         },

@@ -8,10 +8,10 @@ export function CopyFormLinkButton() {
     const url = `${window.location.origin}/submit`
     try {
       await navigator.clipboard.writeText(url)
-      toast.success('Client form link copied', { description: url })
+      toast.success('Outlet form link copied', { description: url })
     } catch {
       // Clipboard API is unavailable over plain http on non-localhost addresses
-      toast.info('Client form link', { description: url, duration: 15000 })
+      toast.info('Outlet form link', { description: url, duration: 15000 })
     }
   }
 

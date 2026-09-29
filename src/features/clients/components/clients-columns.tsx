@@ -1,6 +1,13 @@
 import { type ColumnDef } from '@tanstack/react-table'
-import { Eye } from 'lucide-react'
+import { Eye, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { type Submission } from '../data/schema'
 import { formatPhone, formatSubmittedAt, locationName } from '../lib/format'
@@ -12,14 +19,22 @@ function renderLocation(value: Submission['province']) {
   return name ? <span className='text-nowrap'>{name}</span> : empty
 }
 
-export function getClientsColumns(
+export type ClientRowActions = {
   onView: (submission: Submission) => void
-): ColumnDef<Submission>[] {
+  onEdit: (submission: Submission) => void
+  onDelete: (submission: Submission) => void
+}
+
+export function getClientsColumns({
+  onView,
+  onEdit,
+  onDelete,
+}: ClientRowActions): ColumnDef<Submission>[] {
   return [
     {
       accessorKey: 'clientName',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='Client Name' />
+        <DataTableColumnHeader column={column} title='Outlet Name' />
       ),
       // Wrap instead of truncating so Khmer stacked vowels are never clipped
       cell: ({ row }) => (
@@ -64,19 +79,6 @@ export function getClientsColumns(
       meta: { className: 'hidden @6xl/content:table-cell' },
     },
     {
-      id: 'saleGb',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='Sale GB' />
-      ),
-      cell: ({ row }) =>
-        row.original.saleGb ? (
-          <span className='text-nowrap'>{row.original.saleGb.name}</span>
-        ) : (
-          empty
-        ),
-      meta: { className: 'hidden @3xl/content:table-cell' },
-    },
-    {
       accessorKey: 'submittedAt',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title='Submitted At' />
@@ -99,21 +101,34 @@ export function getClientsColumns(
       id: 'actions',
       header: () => <span className='sr-only'>Actions</span>,
       cell: ({ row }) => (
-        <Button
-          variant='ghost'
-          size='icon'
-          className='size-8'
-          onClick={(event) => {
-            // The row itself also opens details; avoid a double trigger
-            event.stopPropagation()
-            onView(row.original)
-          }}
-        >
-          <Eye className='size-4' />
-          <span className='sr-only'>
-            View details of {row.original.clientName}
-          </span>
-        </Button>
+        // The row itself also opens details; stop clicks here from doing that too
+        <div onClick={(event) => event.stopPropagation()}>
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button variant='ghost' size='icon' className='size-8'>
+                <MoreHorizontal className='size-4' />
+                <span className='sr-only'>
+                  Actions for {row.original.clientName}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end'>
+              <DropdownMenuItem onSelect={() => onView(row.original)}>
+                <Eye /> View details
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onEdit(row.original)}>
+                <Pencil /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant='destructive'
+                onSelect={() => onDelete(row.original)}
+              >
+                <Trash2 /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       ),
       meta: { className: 'w-12 text-end' },
     },

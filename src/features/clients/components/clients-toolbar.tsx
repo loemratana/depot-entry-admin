@@ -3,12 +3,7 @@ import { Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/date-picker'
-import {
-  useCommunes,
-  useDistricts,
-  useProvinces,
-  useSales,
-} from '../data/queries'
+import { useCommunes, useDistricts, useProvinces } from '../data/queries'
 import { type ClientFilters, type LocationOption } from '../data/schema'
 import { fromIsoDate, toIsoDate } from '../lib/format'
 import { type ComboboxOption, FilterCombobox } from './filter-combobox'
@@ -33,12 +28,11 @@ export function ClientsToolbar({
   onFiltersChange,
   onClear,
 }: ClientsToolbarProps) {
-  const { provinceId, districtId, communeId, saleGbId } = filters
+  const { provinceId, districtId, communeId } = filters
 
   const provinces = useProvinces()
   const districts = useDistricts(provinceId)
   const communes = useCommunes(districtId, provinceId)
-  const sales = useSales()
 
   const provinceOptions = useMemo(
     () => toLocationOptions(provinces.data),
@@ -51,15 +45,6 @@ export function ClientsToolbar({
   const communeOptions = useMemo(
     () => toLocationOptions(communes.data),
     [communes.data]
-  )
-  const saleOptions = useMemo(
-    () =>
-      sales.data?.map<ComboboxOption>((sale) => ({
-        value: sale.id,
-        label: sale.name,
-        description: sale.code ?? undefined,
-      })),
-    [sales.data]
   )
 
   /* Debounced search: the input is local, the URL is updated after typing pauses */
@@ -107,13 +92,13 @@ export function ClientsToolbar({
             }
           }}
           placeholder='Search name, phone, or submission no...'
-          aria-label='Search clients'
+          aria-label='Search outlets'
           maxLength={100}
           className='ps-9'
         />
       </div>
 
-      <div className='grid grid-cols-1 gap-2 @xl/content:grid-cols-2 @4xl/content:grid-cols-4'>
+      <div className='grid grid-cols-1 gap-2 @xl/content:grid-cols-3'>
         <FilterCombobox
           label='Province'
           allLabel='All provinces'
@@ -155,16 +140,6 @@ export function ClientsToolbar({
           isLoading={communes.isLoading}
           isError={communes.isError}
           onChange={(value) => onFiltersChange({ communeId: value })}
-        />
-        <FilterCombobox
-          label='Sale GB'
-          allLabel='All Sale GB'
-          searchPlaceholder='Search Sale GB...'
-          options={saleOptions}
-          value={saleGbId}
-          isLoading={sales.isLoading}
-          isError={sales.isError}
-          onChange={(value) => onFiltersChange({ saleGbId: value })}
         />
       </div>
 

@@ -47,7 +47,6 @@ export const FILTER_KEYS = [
   'provinceId',
   'districtId',
   'communeId',
-  'saleGbId',
   'dateFrom',
   'dateTo',
 ] as const satisfies readonly (keyof ClientFilters)[]
@@ -91,6 +90,8 @@ export type SubmissionFile = {
   kind: FileKind
   /** When this file was received and stored (ISO string) */
   uploadedAt: string | null
+  /** Added by an admin (true) or sent by the client from the public form */
+  uploadedByAdmin: boolean
 }
 
 export type Submission = {
@@ -179,6 +180,7 @@ function toFile(value: unknown, index: number): SubmissionFile | null {
     url,
     kind: fileKind(mimeType, name),
     uploadedAt: str(raw.uploadedAt) || null,
+    uploadedByAdmin: raw.uploadedByAdmin === true,
   }
 }
 

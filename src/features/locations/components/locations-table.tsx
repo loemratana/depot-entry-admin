@@ -457,7 +457,7 @@ export function LocationsTable() {
         }
         desc={
           toDelete?.level === 'communes'
-            ? 'This cannot be undone. A commune used by client submissions cannot be deleted; deactivate it instead.'
+            ? 'This cannot be undone. A commune used by outlet submissions cannot be deleted; deactivate it instead.'
             : `This cannot be undone. It can only be deleted when it has no ${toDelete?.level === 'provinces' ? 'districts' : 'communes'} left; otherwise deactivate it instead.`
         }
         confirmText='Delete'

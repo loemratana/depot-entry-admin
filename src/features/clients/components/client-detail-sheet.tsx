@@ -1,4 +1,13 @@
-import { AlertCircle, RotateCw } from 'lucide-react'
+import { useRef, useState } from 'react'
+import {
+  AlertCircle,
+  Loader2,
+  Pencil,
+  Plus,
+  RotateCw,
+  Trash2,
+} from 'lucide-react'
+import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/handle-server-error'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -11,8 +20,22 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useSubmission } from '../data/queries'
-import { type NamedLocation, type Submission } from '../data/schema'
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import {
+  ACCEPT_ATTRIBUTE,
+  MAX_FILES,
+  mergeFiles,
+} from '@/features/submit/lib/files'
+import {
+  useAddClientFiles,
+  useRemoveClientFile,
+  useSubmission,
+} from '../data/queries'
+import {
+  type NamedLocation,
+  type Submission,
+  type SubmissionFile,
+} from '../data/schema'
 import { formatPhone, formatSubmittedAt } from '../lib/format'
 import { ClientDocuments } from './client-documents'
 
@@ -21,20 +44,27 @@ type ClientDetailSheetProps = {
   onOpenChange: (open: boolean) => void
   /** Row from the table; shown immediately while the full record loads */
   submission: Submission | null
+  onEdit: (client: Submission) => void
+  onDelete: (client: Submission) => void
 }
 
 function Section({
   title,
+  action,
   children,
 }: {
   title: string
+  action?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
     <section className='flex flex-col gap-3'>
-      <h3 className='text-xs font-medium tracking-wide text-muted-foreground uppercase'>
-        {title}
-      </h3>
+      <div className='flex min-h-8 items-center justify-between gap-2'>
+        <h3 className='text-xs font-medium tracking-wide text-muted-foreground uppercase'>
+          {title}
+        </h3>
+        {action}
+      </div>
       {children}
     </section>
   )
@@ -77,25 +107,70 @@ export function ClientDetailSheet({
   open,
   onOpenChange,
   submission,
+  onEdit,
+  onDelete,
 }: ClientDetailSheetProps) {
   const detail = useSubmission(open ? (submission?.id ?? null) : null)
   const client = detail.data ?? submission
   const submitted = formatSubmittedAt(client?.submittedAt ?? null)
 
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [toRemove, setToRemove] = useState<SubmissionFile | null>(null)
+  const addFiles = useAddClientFiles()
+  const removeFile = useRemoveClientFile()
+  const fileCount = detail.data?.files.length ?? 0
+
+  const upload = (picked: FileList | null) => {
+    if (!client || !picked?.length) return
+    // Same type/size checks as the client form; the backend re-checks contents
+    const { files, problems } = mergeFiles([], Array.from(picked))
+    for (const problem of problems)
+      toast.error(`${problem.name}: ${problem.reason}`)
+    if (!files.length) return
+    addFiles.mutate(
+      { id: client.id, files },
+      {
+        onSuccess: () =>
+          toast.success(
+            `${files.length} file${files.length === 1 ? '' : 's'} added`
+          ),
+      }
+    )
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className='w-full gap-0 sm:max-w-md'>
         <SheetHeader className='border-b'>
-          <SheetTitle>Client Details</SheetTitle>
+          <SheetTitle>Outlet Details</SheetTitle>
+          {client && (
+            <div className='flex gap-2 pt-1'>
+              <Button
+                size='sm'
+                variant='outline'
+                onClick={() => onEdit(client)}
+              >
+                <Pencil /> Edit
+              </Button>
+              <Button
+                size='sm'
+                variant='outline'
+                className='text-destructive hover:text-destructive'
+                onClick={() => onDelete(client)}
+              >
+                <Trash2 /> Delete
+              </Button>
+            </div>
+          )}
           <SheetDescription className='sr-only'>
-            Submitted client information
+            Submitted outlet information
           </SheetDescription>
         </SheetHeader>
 
         <div className='flex-1 overflow-y-auto px-4 py-5'>
           {client ? (
             <div className='flex flex-col gap-5'>
-              <Section title='Client information'>
+              <Section title='Outlet information'>
                 <dl className='flex flex-col gap-2.5'>
                   <Field label='Name' className='font-medium'>
                     {client.clientName}
@@ -142,7 +217,45 @@ export function ClientDetailSheet({
 
               <Separator />
 
-              <Section title='Documents'>
+              <Section
+                title='Documents'
+                action={
+                  detail.data && (
+                    <>
+                      <Button
+                        size='sm'
+                        variant='outline'
+                        onClick={() => fileInput.current?.click()}
+                        disabled={addFiles.isPending || fileCount >= MAX_FILES}
+                        title={
+                          fileCount >= MAX_FILES
+                            ? `An outlet can have at most ${MAX_FILES} files`
+                            : undefined
+                        }
+                      >
+                        {addFiles.isPending ? (
+                          <Loader2 className='animate-spin' />
+                        ) : (
+                          <Plus />
+                        )}
+                        Add files
+                      </Button>
+                      <input
+                        ref={fileInput}
+                        type='file'
+                        multiple
+                        accept={ACCEPT_ATTRIBUTE}
+                        className='sr-only'
+                        tabIndex={-1}
+                        onChange={(e) => {
+                          upload(e.target.files)
+                          e.target.value = ''
+                        }}
+                      />
+                    </>
+                  )
+                }
+              >
                 {detail.isPending ? (
                   <div className='grid grid-cols-3 gap-2'>
                     {Array.from({ length: 3 }, (_, index) => (
@@ -171,13 +284,40 @@ export function ClientDetailSheet({
                     </Button>
                   </div>
                 ) : (
-                  <ClientDocuments files={detail.data.files} />
+                  <ClientDocuments
+                    files={detail.data.files}
+                    // The last file cannot be removed: a client needs at least one
+                    onRemove={fileCount > 1 ? setToRemove : undefined}
+                  />
                 )}
               </Section>
             </div>
           ) : null}
         </div>
       </SheetContent>
+
+      <ConfirmDialog
+        open={!!toRemove}
+        onOpenChange={(isOpen) =>
+          !isOpen && !removeFile.isPending && setToRemove(null)
+        }
+        title={`Remove "${toRemove?.name}"?`}
+        desc='The file is deleted from storage. This cannot be undone.'
+        confirmText='Remove'
+        destructive
+        isLoading={removeFile.isPending}
+        handleConfirm={() =>
+          client &&
+          toRemove &&
+          removeFile.mutate(
+            { id: client.id, fileId: toRemove.id },
+            {
+              onSuccess: () => toast.success('File removed'),
+              onSettled: () => setToRemove(null),
+            }
+          )
+        }
+      />
     </Sheet>
   )
 }

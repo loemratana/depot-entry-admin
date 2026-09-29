@@ -341,6 +341,25 @@ export function Locations() {
 
                 {report && file && (
                   <>
+                    {changes === 0 && (
+                      // A re-upload of an imported file changes nothing; say so plainly
+                      <Alert>
+                        <CheckCircle2 className='text-green-600' />
+                        <AlertTitle>
+                          Everything in this file is already saved
+                        </AlertTitle>
+                        <AlertDescription>
+                          All {report.inFile.provinces.toLocaleString()}{' '}
+                          provinces, {report.inFile.districts.toLocaleString()}{' '}
+                          districts and{' '}
+                          {report.inFile.communes.toLocaleString()} communes
+                          from {report.fileName} already exist, so there is
+                          nothing new to import.
+                          {report.invalid.total > 0 &&
+                            ` ${report.invalid.total} row(s) below could not be read; fix them in Excel and upload again.`}
+                        </AlertDescription>
+                      </Alert>
+                    )}
                     <ImportReportView report={report} />
                     <div className='flex flex-wrap items-center justify-end gap-2'>
                       <Button variant='outline' onClick={clear} disabled={busy}>

@@ -7,7 +7,8 @@ export type SubmitClientInput = {
   provinceId: string
   districtId: string
   communeId: string
-  saleGbId: string
+  /** Optional; the public form no longer asks for it */
+  saleGbName?: string
   files: File[]
 }
 
@@ -41,7 +42,7 @@ export async function submitClient(
   form.append('provinceId', input.provinceId)
   form.append('districtId', input.districtId)
   form.append('communeId', input.communeId)
-  form.append('saleGbId', input.saleGbId)
+  if (input.saleGbName) form.append('saleGbName', input.saleGbName)
   for (const file of input.files) form.append('files', file, file.name)
 
   const res = await apiClient.post<ApiResponse<SubmitClientResult>>(

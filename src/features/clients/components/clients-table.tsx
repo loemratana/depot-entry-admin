@@ -20,8 +20,8 @@ import {
 } from '@/components/ui/table'
 import { DataTablePagination } from '@/components/data-table'
 import { useSubmissions } from '../data/queries'
-import { type ClientFilters, type Submission } from '../data/schema'
-import { getClientsColumns } from './clients-columns'
+import { type ClientFilters } from '../data/schema'
+import { type ClientRowActions, getClientsColumns } from './clients-columns'
 
 export const DEFAULT_PAGE_SIZE = 20
 const SKELETON_ROWS = 8
@@ -32,8 +32,7 @@ type ClientsTableProps = {
   filters: ClientFilters
   hasActiveFilters: boolean
   onClearFilters: () => void
-  onView: (submission: Submission) => void
-}
+} & ClientRowActions
 
 export function ClientsTable({
   search,
@@ -42,6 +41,8 @@ export function ClientsTable({
   hasActiveFilters,
   onClearFilters,
   onView,
+  onEdit,
+  onDelete,
 }: ClientsTableProps) {
   // Pagination is synced with the URL (?page=&limit=), filtering happens server-side
   const { pagination, onPaginationChange, ensurePageInRange } =
@@ -67,7 +68,10 @@ export function ClientsTable({
   const total = meta?.total ?? 0
   const pageCount = Math.max(meta?.totalPages ?? 1, 1)
 
-  const columns = useMemo(() => getClientsColumns(onView), [onView])
+  const columns = useMemo(
+    () => getClientsColumns({ onView, onEdit, onDelete }),
+    [onView, onEdit, onDelete]
+  )
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
@@ -114,7 +118,7 @@ export function ClientsTable({
       return (
         <StateRow colSpan={visibleColumnCount}>
           <AlertCircle className='size-6 text-destructive' />
-          <p className='font-medium'>Unable to load client submissions.</p>
+          <p className='font-medium'>Unable to load outlet submissions.</p>
           <p className='text-sm text-muted-foreground'>
             {getErrorMessage(query.error, 'Please try again in a moment.')}
           </p>
@@ -136,7 +140,7 @@ export function ClientsTable({
       return hasActiveFilters ? (
         <StateRow colSpan={visibleColumnCount}>
           <SearchX className='size-6 text-muted-foreground' />
-          <p className='font-medium'>No clients match the selected filters.</p>
+          <p className='font-medium'>No outlets match the selected filters.</p>
           <Button
             variant='outline'
             size='sm'
@@ -149,7 +153,7 @@ export function ClientsTable({
       ) : (
         <StateRow colSpan={visibleColumnCount}>
           <Inbox className='size-6 text-muted-foreground' />
-          <p className='font-medium'>No client submissions yet.</p>
+          <p className='font-medium'>No outlet submissions yet.</p>
         </StateRow>
       )
     }

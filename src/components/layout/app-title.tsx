@@ -18,7 +18,7 @@ export function AppTitle() {
               <Users className='size-4' />
             </div>
             <div className='grid flex-1 text-start text-sm leading-tight'>
-              <span className='truncate font-semibold'>Client Management</span>
+              <span className='truncate font-semibold'>Outlet Management</span>
               <span className='truncate text-xs text-muted-foreground'>
                 Admin panel
               </span>

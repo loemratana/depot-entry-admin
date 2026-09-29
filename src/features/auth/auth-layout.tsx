@@ -12,7 +12,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
           <div className='flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground'>
             <Users className='size-4' />
           </div>
-          <span className='text-lg font-medium'>Client Management</span>
+          <span className='text-lg font-medium'>Outlet Management</span>
         </div>
         <div className='flex flex-1 items-center justify-center'>
           <div className='w-full max-w-sm'>{children}</div>

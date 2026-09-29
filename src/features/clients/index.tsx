@@ -1,15 +1,24 @@
 import { useCallback, useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
+import { Plus } from 'lucide-react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import { ConfigDrawer } from '@/components/config-drawer'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { ClientDetailSheet } from './components/client-detail-sheet'
+import {
+  ClientFormDialog,
+  type ClientFormState,
+} from './components/client-form-dialog'
 import { ClientsExportButton } from './components/clients-export-button'
 import { ClientsTable } from './components/clients-table'
 import { ClientsToolbar } from './components/clients-toolbar'
 import { CopyFormLinkButton } from './components/copy-form-link-button'
+import { useDeleteClient } from './data/queries'
 import { type ClientFilters, type Submission, pickFilters } from './data/schema'
 
 const route = getRouteApi('/_authenticated/clients/')
@@ -44,6 +53,19 @@ export function Clients() {
     setSheetOpen(true)
   }, [])
 
+  const [formState, setFormState] = useState<ClientFormState | null>(null)
+  const [toDelete, setToDelete] = useState<Submission | null>(null)
+  const deleteClient = useDeleteClient()
+
+  const editClient = useCallback(
+    (client: Submission) => setFormState({ mode: 'edit', client }),
+    []
+  )
+  const confirmDelete = useCallback(
+    (client: Submission) => setToDelete(client),
+    []
+  )
+
   return (
     <>
       <Header fixed>
@@ -57,14 +79,17 @@ export function Clients() {
       <Main className='flex flex-1 flex-col gap-4 sm:gap-6'>
         <div className='flex flex-wrap items-end justify-between gap-2'>
           <div>
-            <h2 className='text-2xl font-bold tracking-tight'>Clients</h2>
+            <h2 className='text-2xl font-bold tracking-tight'>Outlet</h2>
             <p className='text-muted-foreground'>
-              View and filter client submissions
+              View and filter outlet submissions
             </p>
           </div>
           <div className='flex flex-wrap gap-2'>
             <CopyFormLinkButton />
             <ClientsExportButton filters={filters} />
+            <Button onClick={() => setFormState({ mode: 'create' })}>
+              <Plus /> Add outlet
+            </Button>
           </div>
         </div>
 
@@ -81,6 +106,8 @@ export function Clients() {
           hasActiveFilters={hasActiveFilters}
           onClearFilters={clearFilters}
           onView={viewSubmission}
+          onEdit={editClient}
+          onDelete={confirmDelete}
         />
       </Main>
 
@@ -88,6 +115,38 @@ export function Clients() {
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         submission={selected}
+        onEdit={editClient}
+        onDelete={confirmDelete}
+      />
+
+      <ClientFormDialog
+        state={formState}
+        onOpenChange={(open) => !open && setFormState(null)}
+      />
+
+      <ConfirmDialog
+        open={!!toDelete}
+        onOpenChange={(open) =>
+          !open && !deleteClient.isPending && setToDelete(null)
+        }
+        title={`Delete "${toDelete?.clientName}"?`}
+        desc='The outlet and all attached files are permanently deleted. This cannot be undone.'
+        confirmText='Delete'
+        destructive
+        isLoading={deleteClient.isPending}
+        handleConfirm={() =>
+          toDelete &&
+          deleteClient.mutate(toDelete.id, {
+            onSuccess: () => {
+              toast.success('Outlet deleted', {
+                description: toDelete.clientName,
+              })
+              // Close the detail sheet if it shows the deleted client
+              if (selected?.id === toDelete.id) setSheetOpen(false)
+            },
+            onSettled: () => setToDelete(null),
+          })
+        }
       />
     </>
   )

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ExternalLink, FileText, ImageOff } from 'lucide-react'
+import { ExternalLink, FileText, ImageOff, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,10 +15,44 @@ import { formatDateTime, formatFileSize } from '../lib/format'
 
 type ImageState = 'loading' | 'loaded' | 'error'
 
+/** Remove action shared by images and documents; hidden when removal is not allowed */
+type RemoveProps = { onRemove?: (file: SubmissionFile) => void }
+
+function RemoveButton({
+  file,
+  onRemove,
+  className,
+}: RemoveProps & { file: SubmissionFile; className?: string }) {
+  if (!onRemove) return null
+  return (
+    <Button
+      type='button'
+      variant='ghost'
+      size='icon'
+      onClick={() => onRemove(file)}
+      className={cn('size-7 shrink-0', className)}
+      aria-label={`Remove ${file.name}`}
+      title='Remove file'
+    >
+      <X className='size-4' />
+    </Button>
+  )
+}
+
+function AdminTag({ file }: { file: SubmissionFile }) {
+  if (!file.uploadedByAdmin) return null
+  return (
+    <span className='ms-1 rounded bg-muted px-1 text-[10px] font-medium'>
+      Admin
+    </span>
+  )
+}
+
 function ImageThumbnail({
   file,
   onOpen,
-}: {
+  onRemove,
+}: RemoveProps & {
   file: SubmissionFile
   onOpen: () => void
 }) {
@@ -26,7 +60,17 @@ function ImageThumbnail({
   const uploaded = formatDateTime(file.uploadedAt)
 
   return (
-    <figure className='flex min-w-0 flex-col gap-1'>
+    <figure className='relative flex min-w-0 flex-col gap-1'>
+      {file.uploadedByAdmin && (
+        <span className='absolute start-1 top-1 z-10 rounded bg-background/80 px-1 text-[10px] font-medium'>
+          Admin
+        </span>
+      )}
+      <RemoveButton
+        file={file}
+        onRemove={onRemove}
+        className='absolute end-1 top-1 z-10 bg-background/80 hover:bg-background'
+      />
       <button
         type='button'
         onClick={onOpen}
@@ -74,7 +118,7 @@ function UploadTime({ file, label }: { file: SubmissionFile; label: string }) {
   )
 }
 
-function FileRow({ file }: { file: SubmissionFile }) {
+function FileRow({ file, onRemove }: RemoveProps & { file: SubmissionFile }) {
   const size = formatFileSize(file.size)
   const uploaded = formatDateTime(file.uploadedAt)
   return (
@@ -89,6 +133,7 @@ function FileRow({ file }: { file: SubmissionFile }) {
             {size}
             {size && uploaded && ' · '}
             {uploaded && <UploadTime file={file} label={uploaded} />}
+            <AdminTag file={file} />
           </p>
         )}
       </div>
@@ -104,11 +149,19 @@ function FileRow({ file }: { file: SubmissionFile }) {
           Unavailable
         </Button>
       )}
+      <RemoveButton file={file} onRemove={onRemove} />
     </li>
   )
 }
 
-export function ClientDocuments({ files }: { files: SubmissionFile[] }) {
+/**
+ * `onRemove` enables per-file removal (admins); omit it when the last
+ * remaining file must be kept.
+ */
+export function ClientDocuments({
+  files,
+  onRemove,
+}: RemoveProps & { files: SubmissionFile[] }) {
   const [preview, setPreview] = useState<SubmissionFile | null>(null)
   const images = files.filter((file) => file.kind === 'image')
   const documents = files.filter((file) => file.kind !== 'image')
@@ -129,6 +182,7 @@ export function ClientDocuments({ files }: { files: SubmissionFile[] }) {
               key={`${file.id}-${file.url}`}
               file={file}
               onOpen={() => setPreview(file)}
+              onRemove={onRemove}
             />
           ))}
         </div>
@@ -137,7 +191,7 @@ export function ClientDocuments({ files }: { files: SubmissionFile[] }) {
       {documents.length > 0 && (
         <ul className='flex flex-col gap-2'>
           {documents.map((file) => (
-            <FileRow key={file.id} file={file} />
+            <FileRow key={file.id} file={file} onRemove={onRemove} />
           ))}
         </ul>
       )}

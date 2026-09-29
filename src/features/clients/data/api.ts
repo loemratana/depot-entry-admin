@@ -106,3 +106,61 @@ export async function getSales() {
   const res = await apiClient.get<ApiResponse<SaleOption[]>>('/public/sales')
   return res.data.data
 }
+
+// ---------- Admin CRUD ----------
+
+export type ClientInput = {
+  clientName: string
+  phone: string
+  provinceId: string
+  districtId: string
+  communeId: string
+  /** Typed Sale GB name; the backend matches it to the list or adds it */
+  saleGbName: string
+}
+
+export type ClientChanges = Partial<ClientInput>
+
+const filesForm = (files: File[], fields: Record<string, string> = {}) => {
+  const form = new FormData()
+  for (const [key, value] of Object.entries(fields)) form.append(key, value)
+  for (const file of files) form.append('files', file, file.name)
+  return form
+}
+
+export async function createClient(input: ClientInput, files: File[]) {
+  const res = await apiClient.post<ApiResponse<{ submissionNo: string }>>(
+    '/admin/submissions',
+    filesForm(files, input),
+    { timeout: 5 * 60 * 1000 }
+  )
+  return res.data.data
+}
+
+export async function updateClient(id: string, changes: ClientChanges) {
+  const res = await apiClient.patch<ApiResponse<unknown>>(
+    `/admin/submissions/${encodeURIComponent(id)}`,
+    changes
+  )
+  return normalizeSubmission(res.data.data)
+}
+
+export async function deleteClient(id: string) {
+  await apiClient.delete(`/admin/submissions/${encodeURIComponent(id)}`)
+}
+
+export async function addClientFiles(id: string, files: File[]) {
+  const res = await apiClient.post<ApiResponse<unknown>>(
+    `/admin/submissions/${encodeURIComponent(id)}/files`,
+    filesForm(files),
+    { timeout: 5 * 60 * 1000 }
+  )
+  return normalizeSubmission(res.data.data)
+}
+
+export async function removeClientFile(id: string, fileId: string) {
+  const res = await apiClient.delete<ApiResponse<unknown>>(
+    `/admin/submissions/${encodeURIComponent(id)}/files/${encodeURIComponent(fileId)}`
+  )
+  return normalizeSubmission(res.data.data)
+}

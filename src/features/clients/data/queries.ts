@@ -2,12 +2,20 @@ import {
   keepPreviousData,
   queryOptions,
   useMutation,
+  useQueryClient,
   useQuery,
 } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/handle-server-error'
 import {
+  type ClientChanges,
+  type ClientInput,
   type SubmissionListParams,
+  addClientFiles,
+  createClient,
+  deleteClient,
+  removeClientFile,
+  updateClient,
   exportSubmissions,
   getCommunes,
   getDistricts,
@@ -107,8 +115,72 @@ export function useExportSubmissions() {
     },
     onError: (error) => {
       toast.error(
-        getErrorMessage(error, 'Unable to export client submissions.')
+        getErrorMessage(error, 'Unable to export outlet submissions.')
       )
     },
+  })
+}
+
+// ---------- Admin CRUD ----------
+
+/** Refreshes lists and details; typed Sale GB names may have added a new Sale GB */
+function useRefreshClients() {
+  const queryClient = useQueryClient()
+  return () => {
+    queryClient.invalidateQueries({ queryKey: clientKeys.all })
+    queryClient.invalidateQueries({ queryKey: ['sales'] })
+  }
+}
+
+export function useCreateClient() {
+  const refresh = useRefreshClients()
+  return useMutation({
+    mutationFn: ({ input, files }: { input: ClientInput; files: File[] }) =>
+      createClient(input, files),
+    onSuccess: refresh,
+    // Field errors are shown in the form
+    onError: () => {},
+  })
+}
+
+export function useUpdateClient() {
+  const refresh = useRefreshClients()
+  return useMutation({
+    mutationFn: ({ id, changes }: { id: string; changes: ClientChanges }) =>
+      updateClient(id, changes),
+    onSuccess: refresh,
+    onError: () => {},
+  })
+}
+
+export function useDeleteClient() {
+  const refresh = useRefreshClients()
+  return useMutation({
+    mutationFn: (id: string) => deleteClient(id),
+    onSuccess: refresh,
+    onError: (error) =>
+      toast.error(getErrorMessage(error, 'Unable to delete the outlet.')),
+  })
+}
+
+export function useAddClientFiles() {
+  const refresh = useRefreshClients()
+  return useMutation({
+    mutationFn: ({ id, files }: { id: string; files: File[] }) =>
+      addClientFiles(id, files),
+    onSuccess: refresh,
+    onError: (error) =>
+      toast.error(getErrorMessage(error, 'Unable to add the files.')),
+  })
+}
+
+export function useRemoveClientFile() {
+  const refresh = useRefreshClients()
+  return useMutation({
+    mutationFn: ({ id, fileId }: { id: string; fileId: string }) =>
+      removeClientFile(id, fileId),
+    onSuccess: refresh,
+    onError: (error) =>
+      toast.error(getErrorMessage(error, 'Unable to remove the file.')),
   })
 }

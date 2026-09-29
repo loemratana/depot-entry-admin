@@ -75,7 +75,9 @@ describe('SearchProvider and CommandMenu', () => {
     await expect
       .element(getByText('System', { exact: true }))
       .toBeInTheDocument()
-    await expect.element(getByText('Clients')).toBeInTheDocument()
+    await expect
+      .element(getByText('Outlet', { exact: true }))
+      .toBeInTheDocument()
   })
 
   it('does not show the dialog content when search is closed', async () => {
@@ -111,7 +113,7 @@ describe('SearchProvider and CommandMenu', () => {
 
     await openCommandPalette(screen)
 
-    await userEvent.click(screen.getByRole('option', { name: 'Clients' }))
+    await userEvent.click(screen.getByRole('option', { name: 'Outlet' }))
 
     expect(mocks.navigate).toHaveBeenCalledWith({ to: '/clients' })
     await expect

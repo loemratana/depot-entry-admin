@@ -43,7 +43,7 @@ export function SubmitClient() {
           <div className='flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground'>
             <Users className='size-4' />
           </div>
-          <span className='font-medium'>Client Management</span>
+          <span className='font-medium'>Outlet Management</span>
           <div className='ms-auto'>
             <ThemeSwitch />
           </div>
