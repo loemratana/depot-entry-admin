@@ -1,5 +1,7 @@
 import { AxiosError } from 'axios'
 import { apiClient, type ApiResponse } from '@/lib/api-client'
+import { type MeasureKey } from '@/features/stock/data/api'
+import { type GpsReading } from '../lib/geolocation'
 
 export type SubmitClientInput = {
   clientName: string
@@ -10,6 +12,15 @@ export type SubmitClientInput = {
   /** Optional; the public form no longer asks for it */
   saleGbName?: string
   files: File[]
+  /** Site photos, each with its own id and GPS reading */
+  sitePhotos?: {
+    photoId: string
+    file: File
+    gps: GpsReading
+  }[]
+  /** The outlet's stock, one entry per product; blank boxes already converted to 0.
+   * Only the quantities the product's brand counts are sent. */
+  stockItems?: ({ productId: string } & Partial<Record<MeasureKey, number>>)[]
 }
 
 export type SubmitClientResult = { submissionNo: string }
@@ -43,7 +54,20 @@ export async function submitClient(
   form.append('districtId', input.districtId)
   form.append('communeId', input.communeId)
   if (input.saleGbName) form.append('saleGbName', input.saleGbName)
+  if (input.stockItems?.length)
+    form.append('stockItems', JSON.stringify(input.stockItems))
   for (const file of input.files) form.append('files', file, file.name)
+  // The part name carries the photoId, so GPS never depends on the order of the parts
+  if (input.sitePhotos?.length) {
+    form.append(
+      'sitePhotoMeta',
+      JSON.stringify(
+        input.sitePhotos.map(({ photoId, gps }) => ({ photoId, ...gps }))
+      )
+    )
+    for (const { photoId, file } of input.sitePhotos)
+      form.append(`sitePhotos[${photoId}]`, file, file.name)
+  }
 
   const res = await apiClient.post<ApiResponse<SubmitClientResult>>(
     '/public/submissions',

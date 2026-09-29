@@ -17,6 +17,8 @@ type FilePickerProps = {
   onChange: (files: File[]) => void
   disabled?: boolean
   invalid?: boolean
+  /** Defaults to MAX_FILES; lower when site photos use part of the allowance */
+  maxFiles?: number
 }
 
 /** Object URLs for image previews, revoked when files are removed or on unmount */
@@ -43,6 +45,7 @@ export function FilePicker({
   onChange,
   disabled,
   invalid,
+  maxFiles = MAX_FILES,
 }: FilePickerProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
@@ -51,7 +54,7 @@ export function FilePicker({
 
   const add = (picked: FileList | null) => {
     if (!picked?.length) return
-    const result = mergeFiles(value, Array.from(picked))
+    const result = mergeFiles(value, Array.from(picked), maxFiles)
     setProblems(result.problems)
     onChange(result.files)
   }

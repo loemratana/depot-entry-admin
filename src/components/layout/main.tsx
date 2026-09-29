@@ -6,7 +6,8 @@ type MainProps = React.HTMLAttributes<HTMLElement> & {
   ref?: React.Ref<HTMLElement>
 }
 
-export function Main({ fixed, className, fluid, ...props }: MainProps) {
+// Full width by default; pass fluid={false} to cap very wide screens at max-w-7xl
+export function Main({ fixed, className, fluid = true, ...props }: MainProps) {
   return (
     <main
       data-layout={fixed ? 'fixed' : 'auto'}

@@ -126,9 +126,15 @@ describe('ConfigDrawer (integration)', () => {
       )
     })
 
-    it('selecting sidebar updates layout_variant cookie', async () => {
+    it('selecting sidebar updates layout_variant cookie after another variant', async () => {
       const screen = await renderConfigDrawer()
       await openDrawer(screen)
+
+      // Sidebar is the default, so choose another style first
+      await userEvent.click(
+        screen.getByRole('radio', { name: /select inset/i })
+      )
+      await vi.waitFor(() => expect(getCookie('layout_variant')).toBe('inset'))
 
       await userEvent.click(
         screen.getByRole('radio', { name: /^select sidebar$/i })
@@ -223,7 +229,9 @@ describe('ConfigDrawer (integration)', () => {
           name: /reset sidebar style to default/i,
         })
       )
-      await vi.waitFor(() => expect(getCookie('layout_variant')).toBe('inset'))
+      await vi.waitFor(() =>
+        expect(getCookie('layout_variant')).toBe('sidebar')
+      )
     })
 
     it('resets layout via section control after choosing compact', async () => {
@@ -310,7 +318,7 @@ describe('ConfigDrawer (integration)', () => {
     await vi.waitFor(() => expect(getCookie('sidebar_state')).toBe('true'))
     await vi.waitFor(() => expect(getCookie('dir')).toBeUndefined())
     await vi.waitFor(() => expect(getCookie('vite-ui-theme')).toBeUndefined())
-    await vi.waitFor(() => expect(getCookie('layout_variant')).toBe('inset'))
+    await vi.waitFor(() => expect(getCookie('layout_variant')).toBe('sidebar'))
     await vi.waitFor(() => expect(getCookie('layout_collapsible')).toBe('icon'))
     await vi.waitFor(() =>
       expect(document.documentElement.getAttribute('dir')).toBe('ltr')

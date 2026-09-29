@@ -18,8 +18,13 @@ export type FileProblem = { name: string; reason: string }
 /**
  * Adds newly picked files to the current list, skipping exact duplicates and
  * reporting files that are the wrong type, too large, or over the count limit.
+ * `maxFiles` is lower when site photos already use part of the allowance.
  */
-export function mergeFiles(current: File[], picked: File[]) {
+export function mergeFiles(
+  current: File[],
+  picked: File[],
+  maxFiles: number = MAX_FILES
+) {
   const problems: FileProblem[] = []
   const next = [...current]
   const key = (file: File) => `${file.name}|${file.size}|${file.lastModified}`
@@ -39,7 +44,7 @@ export function mergeFiles(current: File[], picked: File[]) {
       })
     } else if (file.size === 0) {
       problems.push({ name: file.name, reason: 'ឯកសារទទេ · File is empty' })
-    } else if (next.length >= MAX_FILES) {
+    } else if (next.length >= maxFiles) {
       problems.push({
         name: file.name,
         reason: `អតិបរមា ${MAX_FILES} ឯកសារ · Maximum ${MAX_FILES} files`,

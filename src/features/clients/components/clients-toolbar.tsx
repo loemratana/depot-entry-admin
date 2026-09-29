@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/date-picker'
@@ -14,6 +15,10 @@ type ClientsToolbarProps = {
   filters: ClientFilters
   onFiltersChange: (patch: Partial<ClientFilters>) => void
   onClear: () => void
+  /** false hides the search box (the map filters by location and date only) */
+  searchable?: boolean
+  /** Extra controls at the end of the date row (e.g. the map's capture-sequence toggle) */
+  actions?: React.ReactNode
 }
 
 const toLocationOptions = (items: LocationOption[] | undefined) =>
@@ -27,6 +32,8 @@ export function ClientsToolbar({
   filters,
   onFiltersChange,
   onClear,
+  searchable = true,
+  actions,
 }: ClientsToolbarProps) {
   const { provinceId, districtId, communeId } = filters
 
@@ -77,26 +84,28 @@ export function ClientsToolbar({
 
   return (
     <div className='flex flex-col gap-3'>
-      <div className='relative'>
-        <Search className='pointer-events-none absolute inset-s-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground' />
-        <Input
-          type='search'
-          value={searchInput}
-          onChange={(event) => setSearchInput(event.target.value)}
-          onKeyDown={(event) => {
-            // Enter searches immediately without waiting for the debounce
-            if (event.key === 'Enter') {
-              const next = searchInput.trim()
-              lastSyncedSearch.current = next
-              onFiltersChange({ search: next || undefined })
-            }
-          }}
-          placeholder='Search name, phone, or submission no...'
-          aria-label='Search outlets'
-          maxLength={100}
-          className='ps-9'
-        />
-      </div>
+      {searchable && (
+        <div className='relative'>
+          <Search className='pointer-events-none absolute inset-s-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground' />
+          <Input
+            type='search'
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            onKeyDown={(event) => {
+              // Enter searches immediately without waiting for the debounce
+              if (event.key === 'Enter') {
+                const next = searchInput.trim()
+                lastSyncedSearch.current = next
+                onFiltersChange({ search: next || undefined })
+              }
+            }}
+            placeholder='Search name, phone, or submission no...'
+            aria-label='Search outlets'
+            maxLength={100}
+            className='ps-9'
+          />
+        </div>
+      )}
 
       <div className='grid grid-cols-1 gap-2 @xl/content:grid-cols-3'>
         <FilterCombobox
@@ -144,7 +153,13 @@ export function ClientsToolbar({
       </div>
 
       <div className='flex flex-wrap items-center gap-2'>
-        <div className='grid flex-1 grid-cols-2 gap-2 @xl/content:flex @xl/content:flex-none'>
+        <div
+          className={cn(
+            'grid flex-1 grid-cols-2 gap-2 @xl/content:flex @xl/content:flex-none',
+            // With extra controls the dates get their own row on narrow screens
+            actions && 'basis-full @xl/content:basis-auto'
+          )}
+        >
           <DatePicker
             selected={dateFrom}
             onSelect={(date) => onFiltersChange({ dateFrom: toIsoDate(date) })}
@@ -170,11 +185,14 @@ export function ClientsToolbar({
             onClear()
           }}
           disabled={!hasActiveFilters}
-          className='ms-auto'
+          className={actions ? undefined : 'ms-auto'}
         >
           <X />
           Clear filters
         </Button>
+        {actions && (
+          <div className='ms-auto flex items-center gap-2'>{actions}</div>
+        )}
       </div>
     </div>
   )

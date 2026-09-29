@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { getRouteApi } from '@tanstack/react-router'
+import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -26,6 +26,7 @@ const route = getRouteApi('/_authenticated/clients/')
 export function Clients() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
+  const navigateTo = useNavigate()
   const filters = pickFilters(search)
   const hasActiveFilters = Object.keys(filters).length > 0
 
@@ -47,6 +48,16 @@ export function Clients() {
   const clearFilters = useCallback(() => {
     navigate({ search: (prev) => ({ limit: prev.limit }) })
   }, [navigate])
+
+  // Outlet Map showing only this outlet's GPS photos
+  const viewOnMap = useCallback(
+    (submission: Submission) =>
+      navigateTo({
+        to: '/client-map',
+        search: { submissionId: submission.id },
+      }),
+    [navigateTo]
+  )
 
   const viewSubmission = useCallback((submission: Submission) => {
     setSelected(submission)
@@ -106,6 +117,7 @@ export function Clients() {
           hasActiveFilters={hasActiveFilters}
           onClearFilters={clearFilters}
           onView={viewSubmission}
+          onViewMap={viewOnMap}
           onEdit={editClient}
           onDelete={confirmDelete}
         />
