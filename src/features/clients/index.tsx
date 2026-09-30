@@ -18,6 +18,7 @@ import { ClientsExportButton } from './components/clients-export-button'
 import { ClientsTable } from './components/clients-table'
 import { ClientsToolbar } from './components/clients-toolbar'
 import { CopyFormLinkButton } from './components/copy-form-link-button'
+import { OutletStockSheet } from './components/outlet-stock-sheet'
 import { useDeleteClient } from './data/queries'
 import { type ClientFilters, type Submission, pickFilters } from './data/schema'
 
@@ -62,6 +63,14 @@ export function Clients() {
   const viewSubmission = useCallback((submission: Submission) => {
     setSelected(submission)
     setSheetOpen(true)
+  }, [])
+
+  // Latest stock report of one outlet
+  const [stockOutlet, setStockOutlet] = useState<Submission | null>(null)
+  const [stockOpen, setStockOpen] = useState(false)
+  const viewStock = useCallback((submission: Submission) => {
+    setStockOutlet(submission)
+    setStockOpen(true)
   }, [])
 
   const [formState, setFormState] = useState<ClientFormState | null>(null)
@@ -118,10 +127,17 @@ export function Clients() {
           onClearFilters={clearFilters}
           onView={viewSubmission}
           onViewMap={viewOnMap}
+          onViewStock={viewStock}
           onEdit={editClient}
           onDelete={confirmDelete}
         />
       </Main>
+
+      <OutletStockSheet
+        outlet={stockOutlet}
+        open={stockOpen}
+        onOpenChange={setStockOpen}
+      />
 
       <ClientDetailSheet
         open={sheetOpen}

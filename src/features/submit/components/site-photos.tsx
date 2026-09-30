@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { WithTooltip } from '@/components/with-tooltip'
 import { formatFileSize } from '@/features/clients/lib/format'
 import {
   type FileProblem,
@@ -284,15 +285,17 @@ export function SitePhotos({
                   </span>
                 )}
 
-                <button
-                  type='button'
-                  disabled={disabled}
-                  onClick={() => remove(photo.photoId)}
-                  aria-label='Remove photo'
-                  className='absolute end-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 disabled:opacity-50'
-                >
-                  <X className='size-3.5' />
-                </button>
+                <WithTooltip label='លុបរូបថត · Remove photo'>
+                  <button
+                    type='button'
+                    disabled={disabled}
+                    onClick={() => remove(photo.photoId)}
+                    aria-label='Remove photo'
+                    className='absolute end-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 disabled:opacity-50'
+                  >
+                    <X className='size-3.5' />
+                  </button>
+                </WithTooltip>
               </li>
             )
           })}
@@ -326,19 +329,21 @@ export function SitePhotos({
                   {formatFileSize(file.size)}
                 </p>
               </div>
-              <Button
-                type='button'
-                variant='ghost'
-                size='icon'
-                disabled={disabled}
-                onClick={() => {
-                  setProblems([])
-                  onDocumentsChange(documents.filter((f) => f !== file))
-                }}
-                aria-label={`Remove ${file.name}`}
-              >
-                <X />
-              </Button>
+              <WithTooltip label='លុប · Remove' disabled={disabled}>
+                <Button
+                  type='button'
+                  variant='ghost'
+                  size='icon'
+                  disabled={disabled}
+                  onClick={() => {
+                    setProblems([])
+                    onDocumentsChange(documents.filter((f) => f !== file))
+                  }}
+                  aria-label={`Remove ${file.name}`}
+                >
+                  <X />
+                </Button>
+              </WithTooltip>
             </li>
           ))}
         </ul>

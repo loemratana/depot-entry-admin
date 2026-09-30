@@ -1,5 +1,5 @@
 import { type ColumnDef } from '@tanstack/react-table'
-import { Eye, MapIcon, Pencil, Trash2 } from 'lucide-react'
+import { Eye, MapIcon, Package, Pencil, Trash2 } from 'lucide-react'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { type Submission } from '../data/schema'
 import { formatPhone, formatSubmittedAt, locationName } from '../lib/format'
@@ -15,6 +15,7 @@ function renderLocation(value: Submission['province']) {
 export type ClientRowActions = {
   onView: (submission: Submission) => void
   onViewMap: (submission: Submission) => void
+  onViewStock: (submission: Submission) => void
   onEdit: (submission: Submission) => void
   onDelete: (submission: Submission) => void
 }
@@ -22,6 +23,7 @@ export type ClientRowActions = {
 export function getClientsColumns({
   onView,
   onViewMap,
+  onViewStock,
   onEdit,
   onDelete,
 }: ClientRowActions): ColumnDef<Submission>[] {
@@ -105,16 +107,30 @@ export function getClientsColumns({
           >
             <ActionButton
               label={`View details of ${outlet.clientName}`}
+              tooltip='View details'
               className='bg-[#5027F5] hover:bg-[#4119d9]'
               onClick={() => onView(outlet)}
             >
               <Eye />
             </ActionButton>
             <ActionButton
+              label={`View stock of ${outlet.clientName}`}
+              tooltip='View stock'
+              className='bg-emerald-600 hover:bg-emerald-700'
+              onClick={() => onViewStock(outlet)}
+            >
+              <Package />
+            </ActionButton>
+            <ActionButton
               label={
                 outlet.hasGps
                   ? `View ${outlet.clientName} on the map`
                   : `${outlet.clientName} has no GPS photo to show on the map`
+              }
+              tooltip={
+                outlet.hasGps
+                  ? 'View on map'
+                  : 'No GPS photo to show on the map'
               }
               className='bg-sky-600 hover:bg-sky-700'
               disabled={!outlet.hasGps}
@@ -124,6 +140,7 @@ export function getClientsColumns({
             </ActionButton>
             <ActionButton
               label={`Edit ${outlet.clientName}`}
+              tooltip='Edit'
               className='bg-amber-500 hover:bg-amber-600'
               onClick={() => onEdit(outlet)}
             >
@@ -131,6 +148,7 @@ export function getClientsColumns({
             </ActionButton>
             <ActionButton
               label={`Delete ${outlet.clientName}`}
+              tooltip='Delete'
               className='bg-red-600 hover:bg-red-700'
               onClick={() => onDelete(outlet)}
             >
@@ -139,7 +157,7 @@ export function getClientsColumns({
           </div>
         )
       },
-      meta: { className: 'w-40 text-end' },
+      meta: { className: 'w-48 text-end' },
     },
   ]
 }

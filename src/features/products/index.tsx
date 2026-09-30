@@ -193,6 +193,7 @@ export function BrandsProducts() {
                   <div className='flex flex-wrap gap-1.5'>
                     <ActionButton
                       label={`Move ${brand.name} up`}
+                      tooltip='Move up'
                       className='bg-slate-600 hover:bg-slate-700'
                       disabled={busy || brandIndex === 0}
                       onClick={() =>
@@ -203,6 +204,7 @@ export function BrandsProducts() {
                     </ActionButton>
                     <ActionButton
                       label={`Move ${brand.name} down`}
+                      tooltip='Move down'
                       className='bg-slate-600 hover:bg-slate-700'
                       disabled={busy || brandIndex === brands.length - 1}
                       onClick={() =>
@@ -213,6 +215,7 @@ export function BrandsProducts() {
                     </ActionButton>
                     <ActionButton
                       label={`Edit ${brand.name}`}
+                      tooltip='Edit'
                       className='bg-amber-500 hover:bg-amber-600'
                       onClick={() => setBrandDialog(brand)}
                     >
@@ -220,6 +223,7 @@ export function BrandsProducts() {
                     </ActionButton>
                     <ActionButton
                       label={`${brand.isActive ? 'Deactivate' : 'Activate'} ${brand.name}`}
+                      tooltip={brand.isActive ? 'Deactivate' : 'Activate'}
                       className={
                         brand.isActive
                           ? 'bg-sky-600 hover:bg-sky-700'
@@ -237,6 +241,7 @@ export function BrandsProducts() {
                     </ActionButton>
                     <ActionButton
                       label={`Delete ${brand.name}`}
+                      tooltip='Delete'
                       className='bg-red-600 hover:bg-red-700'
                       onClick={() => setToDelete({ kind: 'brand', brand })}
                     >
@@ -296,6 +301,7 @@ export function BrandsProducts() {
                             <div className='flex justify-end gap-1.5'>
                               <ActionButton
                                 label={`Move ${product.name} up`}
+                                tooltip='Move up'
                                 className='bg-slate-600 hover:bg-slate-700'
                                 disabled={busy || index === 0}
                                 onClick={() =>
@@ -309,6 +315,7 @@ export function BrandsProducts() {
                               </ActionButton>
                               <ActionButton
                                 label={`Move ${product.name} down`}
+                                tooltip='Move down'
                                 className='bg-slate-600 hover:bg-slate-700'
                                 disabled={
                                   busy || index === brand.products.length - 1
@@ -324,6 +331,7 @@ export function BrandsProducts() {
                               </ActionButton>
                               <ActionButton
                                 label={`Edit ${product.name}`}
+                                tooltip='Edit'
                                 className='bg-amber-500 hover:bg-amber-600'
                                 onClick={() =>
                                   setProductTarget({ brand, product })
@@ -333,6 +341,9 @@ export function BrandsProducts() {
                               </ActionButton>
                               <ActionButton
                                 label={`${product.isActive ? 'Deactivate' : 'Activate'} ${product.name}`}
+                                tooltip={
+                                  product.isActive ? 'Deactivate' : 'Activate'
+                                }
                                 className={
                                   product.isActive
                                     ? 'bg-sky-600 hover:bg-sky-700'
@@ -350,6 +361,7 @@ export function BrandsProducts() {
                               </ActionButton>
                               <ActionButton
                                 label={`Delete ${product.name}`}
+                                tooltip='Delete'
                                 className='bg-red-600 hover:bg-red-700'
                                 onClick={() =>
                                   setToDelete({

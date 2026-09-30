@@ -20,6 +20,7 @@ import {
   RotateCw,
   Search,
   Trash2,
+  type LucideIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/handle-server-error'
@@ -47,6 +48,7 @@ import {
 } from '@/components/ui/table'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DataTablePagination } from '@/components/data-table'
+import { WithTooltip } from '@/components/with-tooltip'
 import { FilterCombobox } from '@/features/clients/components/filter-combobox'
 import { useProvinces } from '@/features/clients/data/queries'
 import {
@@ -84,22 +86,25 @@ function Name({ item }: { item: LocationRef | null }) {
   )
 }
 
-/** Menu icon on a small solid-colour square (white icon) */
+/**
+ * Menu icon on a small solid-colour square. Size and colour are set on the
+ * icon itself, so the menu item's own icon styles (grey, red) do not apply.
+ */
 function SolidIcon({
+  icon: Icon,
   className,
-  children,
 }: {
+  icon: LucideIcon
   className: string
-  children: React.ReactNode
 }) {
   return (
     <span
       className={cn(
-        'flex size-6 shrink-0 items-center justify-center rounded-md text-white [&_svg]:size-3.5 [&_svg]:text-white',
+        'flex size-6 shrink-0 items-center justify-center rounded-md shadow-sm',
         className
       )}
     >
-      {children}
+      <Icon className='size-3.5 text-white' strokeWidth={2.5} />
     </span>
   )
 }
@@ -123,23 +128,18 @@ function LevelActions({
         {label}: {target.item.nameKh}
       </DropdownMenuLabel>
       <DropdownMenuItem onSelect={() => onEdit(target)}>
-        <SolidIcon className='bg-amber-500'>
-          <Pencil />
-        </SolidIcon>
+        <SolidIcon icon={Pencil} className='bg-amber-500' />
         Edit
       </DropdownMenuItem>
       <DropdownMenuItem onSelect={() => onToggle(target)}>
         <SolidIcon
+          icon={target.item.isActive ? Ban : CheckCircle2}
           className={target.item.isActive ? 'bg-sky-600' : 'bg-emerald-600'}
-        >
-          {target.item.isActive ? <Ban /> : <CheckCircle2 />}
-        </SolidIcon>
+        />
         {target.item.isActive ? 'Deactivate' : 'Activate'}
       </DropdownMenuItem>
       <DropdownMenuItem variant='destructive' onSelect={() => onDelete(target)}>
-        <SolidIcon className='bg-red-600'>
-          <Trash2 />
-        </SolidIcon>
+        <SolidIcon icon={Trash2} className='bg-red-600' />
         Delete
       </DropdownMenuItem>
     </DropdownMenuGroup>
@@ -392,15 +392,17 @@ export function LocationsTable() {
                     </TableCell>
                     <TableCell>
                       <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size='icon'
-                            className='size-8 bg-[#5027F5] text-white hover:bg-[#4119d9]'
-                            aria-label={`Actions for ${own.nameKh}`}
-                          >
-                            <MoreHorizontal />
-                          </Button>
-                        </DropdownMenuTrigger>
+                        <WithTooltip label='Actions'>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size='icon'
+                              className='size-8 bg-[#5027F5] text-white hover:bg-[#4119d9]'
+                              aria-label={`Actions for ${own.nameKh}`}
+                            >
+                              <MoreHorizontal />
+                            </Button>
+                          </DropdownMenuTrigger>
+                        </WithTooltip>
                         <DropdownMenuContent align='end' className='w-60'>
                           {row.commune && (
                             <>
@@ -433,9 +435,10 @@ export function LocationsTable() {
                                   })
                                 }
                               >
-                                <SolidIcon className='bg-[#5027F5]'>
-                                  <Plus />
-                                </SolidIcon>
+                                <SolidIcon
+                                  icon={Plus}
+                                  className='bg-[#5027F5]'
+                                />
                                 Add commune here
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
@@ -454,9 +457,7 @@ export function LocationsTable() {
                               })
                             }
                           >
-                            <SolidIcon className='bg-[#5027F5]'>
-                              <Plus />
-                            </SolidIcon>
+                            <SolidIcon icon={Plus} className='bg-[#5027F5]' />
                             Add district here
                           </DropdownMenuItem>
                         </DropdownMenuContent>

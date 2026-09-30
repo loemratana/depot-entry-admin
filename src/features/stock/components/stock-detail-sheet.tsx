@@ -15,7 +15,12 @@ type StockDetailSheetProps = {
   report: StockReport | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  onDelete: (report: StockReport) => void
+  /** Shows a Delete button when given */
+  onDelete?: (report: StockReport) => void
+  /** The report is still being looked up (e.g. opened from an outlet) */
+  isLoading?: boolean
+  /** Shown when there is no report to show */
+  emptyText?: string
 }
 
 const place = (named: { nameKh: string; nameEn: string }) =>
@@ -26,6 +31,8 @@ export function StockDetailSheet({
   open,
   onOpenChange,
   onDelete,
+  isLoading,
+  emptyText,
 }: StockDetailSheetProps) {
   const detail = useStockReport(open ? (report?.id ?? null) : null)
   const catalog = useStockCatalog()
@@ -49,7 +56,7 @@ export function StockDetailSheet({
           <SheetDescription className='sr-only'>
             Stock quantities reported for an outlet
           </SheetDescription>
-          {data && (
+          {data && onDelete && (
             <div className='pt-1'>
               <Button
                 size='sm'
@@ -64,6 +71,14 @@ export function StockDetailSheet({
         </SheetHeader>
 
         <div className='flex-1 overflow-y-auto px-4 py-5'>
+          {isLoading && !data && (
+            <Loader2 className='mx-auto size-5 animate-spin text-muted-foreground' />
+          )}
+          {!isLoading && !data && emptyText && (
+            <p className='py-10 text-center text-sm text-muted-foreground'>
+              {emptyText}
+            </p>
+          )}
           {data && (
             <div className='flex flex-col gap-5'>
               <dl className='grid grid-cols-[7rem_1fr] gap-x-3 gap-y-2 text-sm'>

@@ -43,6 +43,7 @@ import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { WithTooltip } from '@/components/with-tooltip'
 import { FilterCombobox } from '@/features/clients/components/filter-combobox'
 import {
   useCommunes,
@@ -95,19 +96,20 @@ function ProductsPopover({
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          size='sm'
-          // The row click expands the row; this button only opens the popup
-          onClick={(e) => e.stopPropagation()}
-          aria-label={`View products of ${outletName}`}
-          title='View products'
-          className='h-7 gap-1 rounded-md bg-[#5027F5] px-2 text-xs text-white hover:bg-[#4119d9] focus-visible:ring-[#5027F5]/40'
-        >
-          <Package className='size-3.5' />
-          <span className='tabular-nums'>{stocked.length}</span>
-        </Button>
-      </PopoverTrigger>
+      <WithTooltip label='View products'>
+        <PopoverTrigger asChild>
+          <Button
+            size='sm'
+            // The row click expands the row; this button only opens the popup
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`View products of ${outletName}`}
+            className='h-7 gap-1 rounded-md bg-[#5027F5] px-2 text-xs text-white hover:bg-[#4119d9] focus-visible:ring-[#5027F5]/40'
+          >
+            <Package className='size-3.5' />
+            <span className='tabular-nums'>{stocked.length}</span>
+          </Button>
+        </PopoverTrigger>
+      </WithTooltip>
       <PopoverContent
         align='start'
         className='w-80'
@@ -152,7 +154,7 @@ function ExpandedProducts({
   return (
     <div className='overflow-x-auto bg-background'>
       <table className='w-full text-sm'>
-        <thead className='bg-muted/50 text-xs'>
+        <thead className='bg-[#5027F5] text-xs text-white'>
           <tr>
             <th className='px-3 py-2 text-start font-medium'>Brand</th>
             <th className='px-3 py-2 text-start font-medium'>Product</th>
@@ -492,24 +494,26 @@ export function StockReports() {
                         data-state={open ? 'open' : 'closed'}
                       >
                         <TableCell className='w-10 pe-0'>
-                          <Button
-                            variant='ghost'
-                            size='icon'
-                            className='size-7'
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              toggle(row.id)
-                            }}
-                            aria-expanded={open}
-                            aria-label={`${open ? 'Collapse' : 'Expand'} ${row.outlet.name}`}
-                          >
-                            <ChevronRight
-                              className={cn(
-                                'transition-transform',
-                                open && 'rotate-90'
-                              )}
-                            />
-                          </Button>
+                          <WithTooltip label={open ? 'Collapse' : 'Expand'}>
+                            <Button
+                              variant='ghost'
+                              size='icon'
+                              className='size-7'
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toggle(row.id)
+                              }}
+                              aria-expanded={open}
+                              aria-label={`${open ? 'Collapse' : 'Expand'} ${row.outlet.name}`}
+                            >
+                              <ChevronRight
+                                className={cn(
+                                  'transition-transform',
+                                  open && 'rotate-90'
+                                )}
+                              />
+                            </Button>
+                          </WithTooltip>
                         </TableCell>
                         <TableCell className='font-medium'>
                           {row.outlet.name}
@@ -552,24 +556,28 @@ export function StockReports() {
                         </TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <div className='flex justify-end gap-1'>
-                            <Button
-                              variant='ghost'
-                              size='icon'
-                              className='size-8'
-                              onClick={() => view(row)}
-                              aria-label={`View stock report of ${row.outlet.name}`}
-                            >
-                              <Eye />
-                            </Button>
-                            <Button
-                              variant='ghost'
-                              size='icon'
-                              className='size-8 text-destructive hover:text-destructive'
-                              onClick={() => setToDelete(row)}
-                              aria-label={`Delete stock report of ${row.outlet.name}`}
-                            >
-                              <Trash2 />
-                            </Button>
+                            <WithTooltip label='View details'>
+                              <Button
+                                variant='ghost'
+                                size='icon'
+                                className='size-8'
+                                onClick={() => view(row)}
+                                aria-label={`View stock report of ${row.outlet.name}`}
+                              >
+                                <Eye />
+                              </Button>
+                            </WithTooltip>
+                            <WithTooltip label='Delete'>
+                              <Button
+                                variant='ghost'
+                                size='icon'
+                                className='size-8 text-destructive hover:text-destructive'
+                                onClick={() => setToDelete(row)}
+                                aria-label={`Delete stock report of ${row.outlet.name}`}
+                              >
+                                <Trash2 />
+                              </Button>
+                            </WithTooltip>
                           </div>
                         </TableCell>
                       </TableRow>

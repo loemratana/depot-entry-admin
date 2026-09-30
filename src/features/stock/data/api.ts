@@ -61,6 +61,8 @@ export type StockReport = {
 
 export type StockFilters = {
   search?: string
+  /** Reports of one outlet (the outlet's submission id) */
+  outletId?: string
   provinceId?: string
   districtId?: string
   communeId?: string
@@ -94,9 +96,11 @@ const stockKeys = {
 }
 
 export function useStockReports(
-  params: StockFilters & { page: number; limit: number }
+  params: StockFilters & { page: number; limit: number },
+  { enabled = true }: { enabled?: boolean } = {}
 ) {
   return useQuery({
+    enabled,
     queryKey: stockKeys.list(params),
     queryFn: async ({ signal }) => {
       const res = await apiClient.get<PaginatedResponse<StockReport>>(

@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import { WithTooltip } from '@/components/with-tooltip'
 import { type SubmissionFile } from '../data/schema'
 import { formatDateTime, formatFileSize } from '../lib/format'
 
@@ -25,17 +26,18 @@ function RemoveButton({
 }: RemoveProps & { file: SubmissionFile; className?: string }) {
   if (!onRemove) return null
   return (
-    <Button
-      type='button'
-      variant='ghost'
-      size='icon'
-      onClick={() => onRemove(file)}
-      className={cn('size-7 shrink-0', className)}
-      aria-label={`Remove ${file.name}`}
-      title='Remove file'
-    >
-      <X className='size-4' />
-    </Button>
+    <WithTooltip label='Remove file'>
+      <Button
+        type='button'
+        variant='ghost'
+        size='icon'
+        onClick={() => onRemove(file)}
+        className={cn('size-7 shrink-0', className)}
+        aria-label={`Remove ${file.name}`}
+      >
+        <X className='size-4' />
+      </Button>
+    </WithTooltip>
   )
 }
 

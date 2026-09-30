@@ -30,6 +30,7 @@ import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { WithTooltip } from '@/components/with-tooltip'
 import { getFieldErrors } from '@/features/submit/data/api'
 import { ImportReportView } from './components/import-report'
 import { LocationsTable } from './components/locations-table'
@@ -315,15 +316,17 @@ export function Locations() {
                               : ''}
                       </p>
                     </div>
-                    <Button
-                      size='icon'
-                      className='size-8 bg-red-600 text-white hover:bg-red-700'
-                      onClick={clear}
-                      disabled={busy}
-                      aria-label='Remove file'
-                    >
-                      <X />
-                    </Button>
+                    <WithTooltip label='Remove file' disabled={busy}>
+                      <Button
+                        size='icon'
+                        className='size-8 bg-red-600 text-white hover:bg-red-700'
+                        onClick={clear}
+                        disabled={busy}
+                        aria-label='Remove file'
+                      >
+                        <X />
+                      </Button>
+                    </WithTooltip>
                   </div>
                 )}
 
