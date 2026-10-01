@@ -52,6 +52,7 @@ import {
   normalizePhone,
 } from '../lib/files'
 import { type SitePhoto, isSitePhotoReady } from '../lib/site-photo'
+import { pickedLocationId } from '../lib/typed-location'
 import { type Option, OptionCombobox } from './option-combobox'
 import { SitePhotos } from './site-photos'
 
@@ -336,7 +337,11 @@ export function SubmissionForm({
   const stepOf = (field: string) =>
     steps.findIndex((s) => (s.fields as string[]).includes(field))
   const districts = useDistricts(provinceId || undefined)
-  const communes = useCommunes(districtId || undefined, provinceId || undefined)
+  // A typed (new) district has no communes to list yet; the commune is typed too
+  const communes = useCommunes(
+    pickedLocationId(districtId),
+    provinceId || undefined
+  )
 
   const mutation = useMutation({
     mutationFn: (values: FormOutput) =>
@@ -402,7 +407,11 @@ export function SubmissionForm({
           ? 'files'
           : field?.startsWith('sitePhoto')
             ? 'sitePhotos'
-            : field
+            : field === 'districtName'
+              ? 'districtId'
+              : field === 'communeName'
+                ? 'communeId'
+                : field
         const fieldStep = name ? stepOf(name) : -1
         if (fieldStep < 0) continue
         form.setError(name as FieldPath<FormInput>, { message })
@@ -495,7 +504,7 @@ export function SubmissionForm({
                       type='tel'
                       inputMode='tel'
                       autoComplete='tel'
-                      placeholder='012 345 678'
+                      placeholder='ឧ. 012 345 678'
                       {...field}
                     />
                   </FormControl>
@@ -597,10 +606,11 @@ export function SubmissionForm({
                               ? 'ជ្រើសរើសស្រុក · Select district'
                               : 'សូមជ្រើសរើសខេត្តជាមុន · Select a province first'
                           }
-                          searchPlaceholder='ស្វែងរក · Search...'
+                          searchPlaceholder='ស្វែងរក ឬវាយឈ្មោះថ្មី · Search or type a new name...'
                           isLoading={!!provinceId && districts.isLoading}
                           isError={districts.isError}
                           disabled={!provinceId}
+                          allowCustom
                           invalid={!!fieldState.error}
                         />
                       </FormControl>
@@ -629,10 +639,13 @@ export function SubmissionForm({
                               ? 'ជ្រើសរើសឃុំ · Select commune'
                               : 'សូមជ្រើសរើសស្រុកជាមុន · Select a district first'
                           }
-                          searchPlaceholder='ស្វែងរក · Search...'
-                          isLoading={!!districtId && communes.isLoading}
+                          searchPlaceholder='ស្វែងរក ឬវាយឈ្មោះថ្មី · Search or type a new name...'
+                          isLoading={
+                            !!pickedLocationId(districtId) && communes.isLoading
+                          }
                           isError={communes.isError}
                           disabled={!districtId}
+                          allowCustom
                           invalid={!!fieldState.error}
                         />
                       </FormControl>

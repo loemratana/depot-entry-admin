@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/handle-server-error'
+import { useCan } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -43,6 +44,7 @@ import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { WithTooltip } from '@/components/with-tooltip'
 import { FilterCombobox } from '@/features/clients/components/filter-combobox'
 import {
   useCommunes,
@@ -56,6 +58,7 @@ import {
   locationName,
   toIsoDate,
 } from '@/features/clients/lib/format'
+import { BrandStockTables } from './components/brand-stock-tables'
 import { StockDetailSheet } from './components/stock-detail-sheet'
 import {
   type Measure,
@@ -74,127 +77,51 @@ const stockedCount = (items: StockReport['items']) =>
   items.filter((item) => item.measures.some((key) => item[key] > 0)).length
 
 /**
- * Small solid #5027F5 button in the Products column. It opens a popup listing
- * each product that has stock with its quantities; all-zero products are left out.
+ * Small solid #5027F5 button in the Products column. It opens a popup with the
+ * products that have stock, as per-brand tables like the expanded row
+ * (only each brand's fields); all-zero products are left out.
  */
 function ProductsPopover({
   outletName,
   items,
-  measureLabel,
+  measures,
 }: {
   outletName: string
   items: StockReport['items']
-  measureLabel: Map<string, string>
+  measures: Measure[]
 }) {
-  const stocked = items
-    .map((item) => ({
-      item,
-      counts: item.measures.filter((key) => item[key] > 0),
-    }))
-    .filter(({ counts }) => counts.length > 0)
+  // Only products with some stock; each brand still shows only its own fields
+  const stocked = items.filter((item) =>
+    item.measures.some((key) => item[key] > 0)
+  )
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          size='sm'
-          // The row click expands the row; this button only opens the popup
-          onClick={(e) => e.stopPropagation()}
-          aria-label={`View products of ${outletName}`}
-          title='View products'
-          className='h-7 gap-1 rounded-md bg-[#5027F5] px-2 text-xs text-white hover:bg-[#4119d9] focus-visible:ring-[#5027F5]/40'
-        >
-          <Package className='size-3.5' />
-          <span className='tabular-nums'>{stocked.length}</span>
-        </Button>
-      </PopoverTrigger>
+      <WithTooltip label='View products'>
+        <PopoverTrigger asChild>
+          <Button
+            size='sm'
+            // The row click expands the row; this button only opens the popup
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`View products of ${outletName}`}
+            className='h-7 gap-1 rounded-md bg-[#5027F5] px-2 text-xs text-white hover:bg-[#4119d9] focus-visible:ring-[#5027F5]/40'
+          >
+            <Package className='size-3.5' />
+            <span className='tabular-nums'>{stocked.length}</span>
+          </Button>
+        </PopoverTrigger>
+      </WithTooltip>
       <PopoverContent
         align='start'
-        className='w-80'
+        className='w-[min(40rem,calc(100vw-2rem))] overflow-hidden p-0'
         onClick={(e) => e.stopPropagation()}
       >
-        <p className='mb-2 text-sm font-semibold'>{outletName}</p>
-        <ul className='grid max-h-80 gap-2 overflow-y-auto text-sm'>
-          {stocked.map(({ item, counts }) => (
-            <li key={item.productId} className='rounded-md border px-3 py-2'>
-              <span className='font-medium'>{item.productName}</span>
-              <dl className='mt-1 grid gap-0.5 text-xs'>
-                {counts.map((key) => (
-                  <div key={key} className='flex justify-between gap-3'>
-                    <dt className='text-muted-foreground'>
-                      {measureLabel.get(key) ?? key}
-                    </dt>
-                    <dd className='font-medium tabular-nums'>
-                      {item[key].toLocaleString()}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </li>
-          ))}
-        </ul>
+        <p className='border-b px-3 py-2 text-sm font-semibold'>{outletName}</p>
+        <div className='max-h-96 overflow-y-auto'>
+          <BrandStockTables flush items={stocked} measures={measures} />
+        </div>
       </PopoverContent>
     </Popover>
-  )
-}
-
-/**
- * Expanded row: a table with one row per product and one column per quantity.
- * A quantity the product's brand does not count shows "—" (wedding beer: cases only).
- */
-function ExpandedProducts({
-  items,
-  measures,
-}: {
-  items: StockReport['items']
-  measures: Measure[]
-}) {
-  return (
-    <div className='overflow-x-auto bg-background'>
-      <table className='w-full text-sm'>
-        <thead className='bg-muted/50 text-xs'>
-          <tr>
-            <th className='px-3 py-2 text-start font-medium'>Brand</th>
-            <th className='px-3 py-2 text-start font-medium'>Product</th>
-            {measures.map((m) => (
-              <th
-                key={m.key}
-                className='px-3 py-2 text-end font-medium whitespace-nowrap'
-              >
-                {m.kh}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => (
-            <tr key={item.productId} className='border-t'>
-              <td className='px-3 py-2 text-muted-foreground'>
-                {item.brandName}
-              </td>
-              <td className='px-3 py-2 font-medium'>{item.productName}</td>
-              {measures.map((m) => (
-                <td key={m.key} className='px-3 py-2 text-end tabular-nums'>
-                  {item.measures.includes(m.key) ? (
-                    <span
-                      className={cn(
-                        item[m.key] > 0
-                          ? 'font-semibold'
-                          : 'text-muted-foreground'
-                      )}
-                    >
-                      {item[m.key].toLocaleString()}
-                    </span>
-                  ) : (
-                    <span className='text-muted-foreground'>—</span>
-                  )}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   )
 }
 
@@ -206,6 +133,8 @@ const toOptions = (items: LocationOption[] | undefined) =>
   }))
 
 export function StockReports() {
+  const can = useCan()
+  const canDelete = can('stock.delete')
   const [filters, setFilters] = useState<StockFilters>({})
   const [searchInput, setSearchInput] = useState('')
   const [pagination, setPagination] = useState<PaginationState>({
@@ -246,7 +175,6 @@ export function StockReports() {
   const catalog = useStockCatalog()
   // Khmer label per quantity key, e.g. cases → ចំនួនកេស
   const measures = catalog.data?.measures ?? []
-  const measureLabel = new Map(measures.map((m) => [m.key, m.kh]))
 
   const query = useStockReports({
     ...filters,
@@ -299,18 +227,20 @@ export function StockReports() {
             </p>
           </div>
           <div className='flex flex-wrap gap-2'>
-            <Button
-              variant='outline'
-              onClick={() => exportStock.mutate(filters)}
-              disabled={exportStock.isPending}
-            >
-              {exportStock.isPending ? (
-                <Loader2 className='animate-spin' />
-              ) : (
-                <Download />
-              )}
-              {exportStock.isPending ? 'Exporting...' : 'Export Excel'}
-            </Button>
+            {can('stock.export') && (
+              <Button
+                variant='outline'
+                onClick={() => exportStock.mutate(filters)}
+                disabled={exportStock.isPending}
+              >
+                {exportStock.isPending ? (
+                  <Loader2 className='animate-spin' />
+                ) : (
+                  <Download />
+                )}
+                {exportStock.isPending ? 'Exporting...' : 'Export Excel'}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -492,24 +422,26 @@ export function StockReports() {
                         data-state={open ? 'open' : 'closed'}
                       >
                         <TableCell className='w-10 pe-0'>
-                          <Button
-                            variant='ghost'
-                            size='icon'
-                            className='size-7'
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              toggle(row.id)
-                            }}
-                            aria-expanded={open}
-                            aria-label={`${open ? 'Collapse' : 'Expand'} ${row.outlet.name}`}
-                          >
-                            <ChevronRight
-                              className={cn(
-                                'transition-transform',
-                                open && 'rotate-90'
-                              )}
-                            />
-                          </Button>
+                          <WithTooltip label={open ? 'Collapse' : 'Expand'}>
+                            <Button
+                              variant='ghost'
+                              size='icon'
+                              className='size-7'
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toggle(row.id)
+                              }}
+                              aria-expanded={open}
+                              aria-label={`${open ? 'Collapse' : 'Expand'} ${row.outlet.name}`}
+                            >
+                              <ChevronRight
+                                className={cn(
+                                  'transition-transform',
+                                  open && 'rotate-90'
+                                )}
+                              />
+                            </Button>
+                          </WithTooltip>
                         </TableCell>
                         <TableCell className='font-medium'>
                           {row.outlet.name}
@@ -530,7 +462,7 @@ export function StockReports() {
                             <ProductsPopover
                               outletName={row.outlet.name}
                               items={row.items}
-                              measureLabel={measureLabel}
+                              measures={measures}
                             />
                           ) : (
                             <span className='text-sm text-muted-foreground'>
@@ -552,24 +484,30 @@ export function StockReports() {
                         </TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <div className='flex justify-end gap-1'>
-                            <Button
-                              variant='ghost'
-                              size='icon'
-                              className='size-8'
-                              onClick={() => view(row)}
-                              aria-label={`View stock report of ${row.outlet.name}`}
-                            >
-                              <Eye />
-                            </Button>
-                            <Button
-                              variant='ghost'
-                              size='icon'
-                              className='size-8 text-destructive hover:text-destructive'
-                              onClick={() => setToDelete(row)}
-                              aria-label={`Delete stock report of ${row.outlet.name}`}
-                            >
-                              <Trash2 />
-                            </Button>
+                            <WithTooltip label='View details'>
+                              <Button
+                                variant='ghost'
+                                size='icon'
+                                className='size-8'
+                                onClick={() => view(row)}
+                                aria-label={`View stock report of ${row.outlet.name}`}
+                              >
+                                <Eye />
+                              </Button>
+                            </WithTooltip>
+                            {canDelete && (
+                              <WithTooltip label='Delete'>
+                                <Button
+                                  variant='ghost'
+                                  size='icon'
+                                  className='size-8 text-destructive hover:text-destructive'
+                                  onClick={() => setToDelete(row)}
+                                  aria-label={`Delete stock report of ${row.outlet.name}`}
+                                >
+                                  <Trash2 />
+                                </Button>
+                              </WithTooltip>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -579,7 +517,8 @@ export function StockReports() {
                             colSpan={columnCount}
                             className='p-0 whitespace-normal'
                           >
-                            <ExpandedProducts
+                            <BrandStockTables
+                              flush
                               items={row.items}
                               measures={measures}
                             />
@@ -606,7 +545,7 @@ export function StockReports() {
         report={selected}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        onDelete={setToDelete}
+        onDelete={canDelete ? setToDelete : undefined}
       />
 
       <ConfirmDialog

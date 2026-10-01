@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
+import { useCan } from '@/lib/permissions'
 import { Button } from '@/components/ui/button'
 import { ConfigDrawer } from '@/components/config-drawer'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -18,6 +19,7 @@ import { ClientsExportButton } from './components/clients-export-button'
 import { ClientsTable } from './components/clients-table'
 import { ClientsToolbar } from './components/clients-toolbar'
 import { CopyFormLinkButton } from './components/copy-form-link-button'
+import { OutletStockSheet } from './components/outlet-stock-sheet'
 import { useDeleteClient } from './data/queries'
 import { type ClientFilters, type Submission, pickFilters } from './data/schema'
 
@@ -28,6 +30,7 @@ export function Clients() {
   const navigate = route.useNavigate()
   const navigateTo = useNavigate()
   const filters = pickFilters(search)
+  const can = useCan()
   const hasActiveFilters = Object.keys(filters).length > 0
 
   const [selected, setSelected] = useState<Submission | null>(null)
@@ -64,6 +67,14 @@ export function Clients() {
     setSheetOpen(true)
   }, [])
 
+  // Latest stock report of one outlet
+  const [stockOutlet, setStockOutlet] = useState<Submission | null>(null)
+  const [stockOpen, setStockOpen] = useState(false)
+  const viewStock = useCallback((submission: Submission) => {
+    setStockOutlet(submission)
+    setStockOpen(true)
+  }, [])
+
   const [formState, setFormState] = useState<ClientFormState | null>(null)
   const [toDelete, setToDelete] = useState<Submission | null>(null)
   const deleteClient = useDeleteClient()
@@ -97,10 +108,12 @@ export function Clients() {
           </div>
           <div className='flex flex-wrap gap-2'>
             <CopyFormLinkButton />
-            <ClientsExportButton filters={filters} />
-            <Button onClick={() => setFormState({ mode: 'create' })}>
-              <Plus /> Add outlet
-            </Button>
+            {can('outlets.export') && <ClientsExportButton filters={filters} />}
+            {can('outlets.create') && (
+              <Button onClick={() => setFormState({ mode: 'create' })}>
+                <Plus /> Add outlet
+              </Button>
+            )}
           </div>
         </div>
 
@@ -117,18 +130,25 @@ export function Clients() {
           hasActiveFilters={hasActiveFilters}
           onClearFilters={clearFilters}
           onView={viewSubmission}
-          onViewMap={viewOnMap}
-          onEdit={editClient}
-          onDelete={confirmDelete}
+          onViewMap={can('map.view') ? viewOnMap : undefined}
+          onViewStock={can('stock.view') ? viewStock : undefined}
+          onEdit={can('outlets.update') ? editClient : undefined}
+          onDelete={can('outlets.delete') ? confirmDelete : undefined}
         />
       </Main>
+
+      <OutletStockSheet
+        outlet={stockOutlet}
+        open={stockOpen}
+        onOpenChange={setStockOpen}
+      />
 
       <ClientDetailSheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         submission={selected}
-        onEdit={editClient}
-        onDelete={confirmDelete}
+        onEdit={can('outlets.update') ? editClient : undefined}
+        onDelete={can('outlets.delete') ? confirmDelete : undefined}
       />
 
       <ClientFormDialog

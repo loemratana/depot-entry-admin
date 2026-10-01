@@ -2,11 +2,13 @@ import { AxiosError } from 'axios'
 import { apiClient, type ApiResponse } from '@/lib/api-client'
 import { type MeasureKey } from '@/features/stock/data/api'
 import { type GpsReading } from '../lib/geolocation'
+import { locationField } from '../lib/typed-location'
 
 export type SubmitClientInput = {
   clientName: string
   phone: string
   provinceId: string
+  /** A picked id, or `new:<name>` when typed (see lib/typed-location) */
   districtId: string
   communeId: string
   /** Optional; the public form no longer asks for it */
@@ -51,8 +53,14 @@ export async function submitClient(
   form.append('clientName', input.clientName)
   form.append('phone', input.phone)
   form.append('provinceId', input.provinceId)
-  form.append('districtId', input.districtId)
-  form.append('communeId', input.communeId)
+  // Picked from the list (id) or typed because it was missing (name)
+  for (const [level, value] of [
+    ['district', input.districtId],
+    ['commune', input.communeId],
+  ] as const) {
+    const location = locationField(level, value)
+    form.append(location.field, location.value)
+  }
   if (input.saleGbName) form.append('saleGbName', input.saleGbName)
   if (input.stockItems?.length)
     form.append('stockItems', JSON.stringify(input.stockItems))

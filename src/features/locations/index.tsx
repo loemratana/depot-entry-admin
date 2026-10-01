@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/handle-server-error'
+import { useCan } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -30,6 +31,7 @@ import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { WithTooltip } from '@/components/with-tooltip'
 import { getFieldErrors } from '@/features/submit/data/api'
 import { ImportReportView } from './components/import-report'
 import { LocationsTable } from './components/locations-table'
@@ -184,6 +186,7 @@ export function Locations() {
   const report = check.data
   const changes = report ? totalChanges(report) : 0
   const busy = check.isPending || runImport.isPending
+  const canImport = useCan()('locations.import')
   const error = check.error ?? runImport.error
 
   return (
@@ -204,18 +207,20 @@ export function Locations() {
               Upload the province, district and commune list used by the forms
             </p>
           </div>
-          <Button
-            variant='outline'
-            onClick={() => template.mutate()}
-            disabled={template.isPending}
-          >
-            {template.isPending ? (
-              <Loader2 className='animate-spin' />
-            ) : (
-              <Download />
-            )}
-            Download template
-          </Button>
+          {canImport && (
+            <Button
+              variant='outline'
+              onClick={() => template.mutate()}
+              disabled={template.isPending}
+            >
+              {template.isPending ? (
+                <Loader2 className='animate-spin' />
+              ) : (
+                <Download />
+              )}
+              Download template
+            </Button>
+          )}
         </div>
 
         <SummaryStrip />
@@ -223,7 +228,7 @@ export function Locations() {
         <Tabs defaultValue='browse' className='gap-4'>
           <TabsList>
             <TabsTrigger value='browse'>All locations</TabsTrigger>
-            <TabsTrigger value='upload'>Upload</TabsTrigger>
+            {canImport && <TabsTrigger value='upload'>Upload</TabsTrigger>}
           </TabsList>
           <TabsContent value='browse'>
             <LocationsTable />
@@ -315,15 +320,17 @@ export function Locations() {
                               : ''}
                       </p>
                     </div>
-                    <Button
-                      size='icon'
-                      className='size-8 bg-red-600 text-white hover:bg-red-700'
-                      onClick={clear}
-                      disabled={busy}
-                      aria-label='Remove file'
-                    >
-                      <X />
-                    </Button>
+                    <WithTooltip label='Remove file' disabled={busy}>
+                      <Button
+                        size='icon'
+                        className='size-8 bg-red-600 text-white hover:bg-red-700'
+                        onClick={clear}
+                        disabled={busy}
+                        aria-label='Remove file'
+                      >
+                        <X />
+                      </Button>
+                    </WithTooltip>
                   </div>
                 )}
 

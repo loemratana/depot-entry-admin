@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { FileText, ImagePlus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { WithTooltip } from '@/components/with-tooltip'
 import { formatFileSize } from '@/features/clients/lib/format'
 import {
   ACCEPT_ATTRIBUTE,
@@ -156,16 +157,18 @@ export function FilePicker({
                     {formatFileSize(file.size)}
                   </p>
                 </div>
-                <Button
-                  type='button'
-                  variant='ghost'
-                  size='icon'
-                  disabled={disabled}
-                  onClick={() => remove(file)}
-                  aria-label={`Remove ${file.name}`}
-                >
-                  <X />
-                </Button>
+                <WithTooltip label='លុប · Remove' disabled={disabled}>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon'
+                    disabled={disabled}
+                    onClick={() => remove(file)}
+                    aria-label={`Remove ${file.name}`}
+                  >
+                    <X />
+                  </Button>
+                </WithTooltip>
               </li>
             )
           })}

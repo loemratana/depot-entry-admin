@@ -11,7 +11,8 @@ const sampleUser = {
   id: 'admin-1',
   name: 'Administrator',
   email: 'admin@example.com',
-  role: 'ADMIN',
+  role: { id: 'role-1', name: 'Super Admin', isSystem: true },
+  permissions: ['outlets.view'],
 }
 
 describe('useAuthStore', () => {

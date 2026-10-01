@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/handle-server-error'
+import { useCan } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -47,6 +48,8 @@ import {
 } from '@/components/ui/table'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DataTablePagination } from '@/components/data-table'
+import { SolidIcon } from '@/components/solid-icon'
+import { WithTooltip } from '@/components/with-tooltip'
 import { FilterCombobox } from '@/features/clients/components/filter-combobox'
 import { useProvinces } from '@/features/clients/data/queries'
 import {
@@ -84,26 +87,6 @@ function Name({ item }: { item: LocationRef | null }) {
   )
 }
 
-/** Menu icon on a small solid-colour square (white icon) */
-function SolidIcon({
-  className,
-  children,
-}: {
-  className: string
-  children: React.ReactNode
-}) {
-  return (
-    <span
-      className={cn(
-        'flex size-6 shrink-0 items-center justify-center rounded-md text-white [&_svg]:size-3.5 [&_svg]:text-white',
-        className
-      )}
-    >
-      {children}
-    </span>
-  )
-}
-
 /** Actions for one level of a row (edit, activate/deactivate, delete) */
 function LevelActions({
   target,
@@ -123,23 +106,18 @@ function LevelActions({
         {label}: {target.item.nameKh}
       </DropdownMenuLabel>
       <DropdownMenuItem onSelect={() => onEdit(target)}>
-        <SolidIcon className='bg-amber-500'>
-          <Pencil />
-        </SolidIcon>
+        <SolidIcon icon={Pencil} className='bg-amber-500' />
         Edit
       </DropdownMenuItem>
       <DropdownMenuItem onSelect={() => onToggle(target)}>
         <SolidIcon
+          icon={target.item.isActive ? Ban : CheckCircle2}
           className={target.item.isActive ? 'bg-sky-600' : 'bg-emerald-600'}
-        >
-          {target.item.isActive ? <Ban /> : <CheckCircle2 />}
-        </SolidIcon>
+        />
         {target.item.isActive ? 'Deactivate' : 'Activate'}
       </DropdownMenuItem>
       <DropdownMenuItem variant='destructive' onSelect={() => onDelete(target)}>
-        <SolidIcon className='bg-red-600'>
-          <Trash2 />
-        </SolidIcon>
+        <SolidIcon icon={Trash2} className='bg-red-600' />
         Delete
       </DropdownMenuItem>
     </DropdownMenuGroup>
@@ -149,6 +127,7 @@ function LevelActions({
 /** Province / district / commune rows sorted by province, with CRUD actions */
 export function LocationsTable() {
   const queryClient = useQueryClient()
+  const canManage = useCan()('locations.manage')
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [provinceId, setProvinceId] = useState<string>()
@@ -293,9 +272,11 @@ export function LocationsTable() {
           isLoading={provinces.isLoading}
           isError={provinces.isError}
         />
-        <Button onClick={() => setDialog({ mode: 'create', provinceId })}>
-          <Plus /> Add location
-        </Button>
+        {canManage && (
+          <Button onClick={() => setDialog({ mode: 'create', provinceId })}>
+            <Plus /> Add location
+          </Button>
+        )}
       </div>
 
       <div
@@ -391,76 +372,82 @@ export function LocationsTable() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size='icon'
-                            className='size-8 bg-[#5027F5] text-white hover:bg-[#4119d9]'
-                            aria-label={`Actions for ${own.nameKh}`}
-                          >
-                            <MoreHorizontal />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align='end' className='w-60'>
-                          {row.commune && (
-                            <>
-                              <LevelActions
-                                target={{
-                                  level: 'communes',
-                                  item: row.commune,
-                                }}
-                                {...handlers}
-                              />
-                              <DropdownMenuSeparator />
-                            </>
-                          )}
-                          {row.district && (
-                            <>
-                              <LevelActions
-                                target={{
-                                  level: 'districts',
-                                  item: row.district,
-                                }}
-                                {...handlers}
-                              />
-                              <DropdownMenuItem
-                                onSelect={() =>
-                                  setDialog({
-                                    mode: 'create',
-                                    level: 'communes',
-                                    provinceId: row.province.id,
-                                    districtId: row.district!.id,
-                                  })
-                                }
+                      {canManage && (
+                        <DropdownMenu modal={false}>
+                          <WithTooltip label='Actions'>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                size='icon'
+                                className='size-8 bg-[#5027F5] text-white hover:bg-[#4119d9]'
+                                aria-label={`Actions for ${own.nameKh}`}
                               >
-                                <SolidIcon className='bg-[#5027F5]'>
-                                  <Plus />
-                                </SolidIcon>
-                                Add commune here
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                            </>
-                          )}
-                          <LevelActions
-                            target={{ level: 'provinces', item: row.province }}
-                            {...handlers}
-                          />
-                          <DropdownMenuItem
-                            onSelect={() =>
-                              setDialog({
-                                mode: 'create',
-                                level: 'districts',
-                                provinceId: row.province.id,
-                              })
-                            }
-                          >
-                            <SolidIcon className='bg-[#5027F5]'>
-                              <Plus />
-                            </SolidIcon>
-                            Add district here
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                                <MoreHorizontal />
+                              </Button>
+                            </DropdownMenuTrigger>
+                          </WithTooltip>
+                          <DropdownMenuContent align='end' className='w-60'>
+                            {row.commune && (
+                              <>
+                                <LevelActions
+                                  target={{
+                                    level: 'communes',
+                                    item: row.commune,
+                                  }}
+                                  {...handlers}
+                                />
+                                <DropdownMenuSeparator />
+                              </>
+                            )}
+                            {row.district && (
+                              <>
+                                <LevelActions
+                                  target={{
+                                    level: 'districts',
+                                    item: row.district,
+                                  }}
+                                  {...handlers}
+                                />
+                                <DropdownMenuItem
+                                  onSelect={() =>
+                                    setDialog({
+                                      mode: 'create',
+                                      level: 'communes',
+                                      provinceId: row.province.id,
+                                      districtId: row.district!.id,
+                                    })
+                                  }
+                                >
+                                  <SolidIcon
+                                    icon={Plus}
+                                    className='bg-[#5027F5]'
+                                  />
+                                  Add commune here
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                              </>
+                            )}
+                            <LevelActions
+                              target={{
+                                level: 'provinces',
+                                item: row.province,
+                              }}
+                              {...handlers}
+                            />
+                            <DropdownMenuItem
+                              onSelect={() =>
+                                setDialog({
+                                  mode: 'create',
+                                  level: 'districts',
+                                  provinceId: row.province.id,
+                                })
+                              }
+                            >
+                              <SolidIcon icon={Plus} className='bg-[#5027F5]' />
+                              Add district here
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </TableCell>
                   </TableRow>
                 )

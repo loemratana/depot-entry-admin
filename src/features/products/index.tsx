@@ -6,25 +6,37 @@ import {
   Ban,
   CheckCircle2,
   ImageOff,
+  MoreHorizontal,
   Pencil,
   Plus,
   RotateCw,
   Trash2,
+  type LucideIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiUrl } from '@/lib/api-client'
 import { getErrorMessage } from '@/lib/handle-server-error'
+import { useCan } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfigDrawer } from '@/components/config-drawer'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
+import { SolidIcon } from '@/components/solid-icon'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { ActionButton } from '@/features/clients/components/action-button'
+import { WithTooltip } from '@/components/with-tooltip'
 import { BrandDialog } from './components/brand-dialog'
 import { ProductDialog, type ProductTarget } from './components/product-dialog'
 import {
@@ -70,9 +82,75 @@ function BrandLogo({ brand }: { brand: AdminBrand }) {
   )
 }
 
+type MenuAction = {
+  label: string
+  icon: LucideIcon
+  /** Background of the icon square */
+  color: string
+  onSelect: () => void
+  disabled?: boolean
+  destructive?: boolean
+}
+
+/** Purple "…" button that opens the actions of a brand or a product */
+function ActionsMenu({
+  label,
+  title,
+  actions,
+  size = 'size-8',
+}: {
+  /** Accessible name, e.g. "Actions for GANZBERG" */
+  label: string
+  /** Shown at the top of the menu */
+  title: string
+  actions: (MenuAction | 'separator')[]
+  size?: string
+}) {
+  return (
+    <DropdownMenu modal={false}>
+      <WithTooltip label='Actions'>
+        <DropdownMenuTrigger asChild>
+          <Button
+            size='icon'
+            className={cn(
+              size,
+              'shrink-0 bg-[#5027F5] text-white hover:bg-[#4119d9]'
+            )}
+            aria-label={label}
+          >
+            <MoreHorizontal />
+          </Button>
+        </DropdownMenuTrigger>
+      </WithTooltip>
+      <DropdownMenuContent align='end' className='w-52'>
+        <DropdownMenuLabel className='truncate text-xs text-muted-foreground'>
+          {title}
+        </DropdownMenuLabel>
+        {actions.map((action, index) =>
+          action === 'separator' ? (
+            <DropdownMenuSeparator key={`separator-${index}`} />
+          ) : (
+            <DropdownMenuItem
+              key={action.label}
+              disabled={action.disabled}
+              variant={action.destructive ? 'destructive' : 'default'}
+              onSelect={action.onSelect}
+            >
+              <SolidIcon icon={action.icon} className={action.color} />
+              {action.label}
+            </DropdownMenuItem>
+          )
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 /** Stock form brands and their products: add, edit, logo, order, activate, delete */
 export function BrandsProducts() {
   const query = useBrands()
+  // View-only users see the catalog without the edit buttons
+  const canManage = useCan()('catalog.manage')
   const brands = query.data?.brands ?? []
   const measures = query.data?.measures ?? []
   const measureLabel = new Map(measures.map((m) => [m.key, m.kh]))
@@ -117,12 +195,14 @@ export function BrandsProducts() {
               form order
             </p>
           </div>
-          <Button
-            className='bg-[#5027F5] text-white hover:bg-[#4119d9]'
-            onClick={() => setBrandDialog('new')}
-          >
-            <Plus /> Add brand
-          </Button>
+          {canManage && (
+            <Button
+              className='bg-[#5027F5] text-white hover:bg-[#4119d9]'
+              onClick={() => setBrandDialog('new')}
+            >
+              <Plus /> Add brand
+            </Button>
+          )}
         </div>
 
         {query.isPending ? (
@@ -143,240 +223,248 @@ export function BrandsProducts() {
           <div className='flex flex-col items-center gap-3 rounded-md border border-dashed p-10 text-center text-sm text-muted-foreground'>
             No brands yet. Add a brand, then its products; each brand becomes
             one step of the stock form.
-            <Button
-              className='bg-[#5027F5] text-white hover:bg-[#4119d9]'
-              onClick={() => setBrandDialog('new')}
-            >
-              <Plus /> Add brand
-            </Button>
+            {canManage && (
+              <Button
+                className='bg-[#5027F5] text-white hover:bg-[#4119d9]'
+                onClick={() => setBrandDialog('new')}
+              >
+                <Plus /> Add brand
+              </Button>
+            )}
           </div>
         ) : (
-          <div className='grid gap-4'>
+          <div className='grid items-start gap-4 md:grid-cols-2 2xl:grid-cols-3'>
             {brands.map((brand, brandIndex) => (
               <section
                 key={brand.id}
                 className={cn(
-                  'overflow-hidden rounded-md border',
+                  'flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm',
                   !brand.isActive && 'opacity-70'
                 )}
                 aria-label={brand.name}
               >
-                <div className='flex flex-wrap items-center gap-4 bg-muted/40 p-4'>
+                {/* Brand: logo, names, the fields its stock step asks for */}
+                <div className='flex items-start gap-3 p-4'>
                   <BrandLogo brand={brand} />
                   <div className='min-w-0 flex-1'>
-                    <div className='flex flex-wrap items-center gap-2'>
-                      <h3 className='text-base font-semibold'>
-                        <span className='me-1 text-muted-foreground tabular-nums'>
-                          {brandIndex + 1}.
-                        </span>
+                    <div className='flex items-start justify-between gap-2'>
+                      <h3 className='truncate text-base leading-tight font-semibold'>
                         {brand.name}
                       </h3>
-                      <StatusBadge active={brand.isActive} />
+                      <div className='flex shrink-0 items-center gap-2'>
+                        <Badge className='bg-[#5027F5] text-white'>
+                          Step {brandIndex + 1}
+                        </Badge>
+                        {canManage && (
+                          <ActionsMenu
+                            label={`Actions for ${brand.name}`}
+                            title={brand.name}
+                            actions={[
+                              {
+                                label: 'Move up',
+                                icon: ArrowUp,
+                                color: 'bg-slate-600',
+                                disabled: busy || brandIndex === 0,
+                                onSelect: () =>
+                                  moveBrand.mutate({
+                                    id: brand.id,
+                                    direction: 'up',
+                                  }),
+                              },
+                              {
+                                label: 'Move down',
+                                icon: ArrowDown,
+                                color: 'bg-slate-600',
+                                disabled:
+                                  busy || brandIndex === brands.length - 1,
+                                onSelect: () =>
+                                  moveBrand.mutate({
+                                    id: brand.id,
+                                    direction: 'down',
+                                  }),
+                              },
+                              {
+                                label: 'Edit brand',
+                                icon: Pencil,
+                                color: 'bg-amber-500',
+                                onSelect: () => setBrandDialog(brand),
+                              },
+                              {
+                                label: 'Add product',
+                                icon: Plus,
+                                color: 'bg-[#5027F5]',
+                                onSelect: () =>
+                                  setProductTarget({ brand, product: null }),
+                              },
+                              {
+                                label: brand.isActive
+                                  ? 'Deactivate'
+                                  : 'Activate',
+                                icon: brand.isActive ? Ban : CheckCircle2,
+                                color: brand.isActive
+                                  ? 'bg-sky-600'
+                                  : 'bg-emerald-600',
+                                disabled: toggleBrand.isPending,
+                                onSelect: () =>
+                                  toggleBrand.mutate({
+                                    id: brand.id,
+                                    isActive: !brand.isActive,
+                                  }),
+                              },
+                              'separator',
+                              {
+                                label: 'Delete brand',
+                                icon: Trash2,
+                                color: 'bg-red-600',
+                                destructive: true,
+                                onSelect: () =>
+                                  setToDelete({ kind: 'brand', brand }),
+                              },
+                            ]}
+                          />
+                        )}
+                      </div>
                     </div>
                     {brand.nameKh && (
-                      <p className='text-sm text-muted-foreground'>
+                      <p className='truncate text-sm text-muted-foreground'>
                         {brand.nameKh}
                       </p>
                     )}
-                    <div className='mt-1.5 flex flex-wrap gap-1'>
-                      {brand.measures.map((key) => (
-                        <Badge
-                          key={key}
-                          variant='secondary'
-                          className='font-normal'
-                        >
-                          {measureLabel.get(key) ?? key}
-                        </Badge>
-                      ))}
+                    <div className='mt-1.5'>
+                      <StatusBadge active={brand.isActive} />
                     </div>
-                  </div>
-                  <div className='flex flex-wrap gap-1.5'>
-                    <ActionButton
-                      label={`Move ${brand.name} up`}
-                      className='bg-slate-600 hover:bg-slate-700'
-                      disabled={busy || brandIndex === 0}
-                      onClick={() =>
-                        moveBrand.mutate({ id: brand.id, direction: 'up' })
-                      }
-                    >
-                      <ArrowUp />
-                    </ActionButton>
-                    <ActionButton
-                      label={`Move ${brand.name} down`}
-                      className='bg-slate-600 hover:bg-slate-700'
-                      disabled={busy || brandIndex === brands.length - 1}
-                      onClick={() =>
-                        moveBrand.mutate({ id: brand.id, direction: 'down' })
-                      }
-                    >
-                      <ArrowDown />
-                    </ActionButton>
-                    <ActionButton
-                      label={`Edit ${brand.name}`}
-                      className='bg-amber-500 hover:bg-amber-600'
-                      onClick={() => setBrandDialog(brand)}
-                    >
-                      <Pencil />
-                    </ActionButton>
-                    <ActionButton
-                      label={`${brand.isActive ? 'Deactivate' : 'Activate'} ${brand.name}`}
-                      className={
-                        brand.isActive
-                          ? 'bg-sky-600 hover:bg-sky-700'
-                          : 'bg-emerald-600 hover:bg-emerald-700'
-                      }
-                      disabled={toggleBrand.isPending}
-                      onClick={() =>
-                        toggleBrand.mutate({
-                          id: brand.id,
-                          isActive: !brand.isActive,
-                        })
-                      }
-                    >
-                      {brand.isActive ? <Ban /> : <CheckCircle2 />}
-                    </ActionButton>
-                    <ActionButton
-                      label={`Delete ${brand.name}`}
-                      className='bg-red-600 hover:bg-red-700'
-                      onClick={() => setToDelete({ kind: 'brand', brand })}
-                    >
-                      <Trash2 />
-                    </ActionButton>
                   </div>
                 </div>
 
-                <div className='overflow-x-auto'>
-                  <table className='w-full text-sm'>
-                    <thead className='border-y bg-muted/20 text-xs text-muted-foreground'>
-                      <tr>
-                        <th className='w-12 px-4 py-2 text-start font-medium'>
-                          #
-                        </th>
-                        <th className='px-4 py-2 text-start font-medium'>
-                          Product
-                        </th>
-                        <th className='px-4 py-2 text-start font-medium'>
-                          Status
-                        </th>
-                        <th className='px-4 py-2 text-end font-medium'>
-                          <span className='sr-only'>Actions</span>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {brand.products.length === 0 && (
-                        <tr>
-                          <td
-                            colSpan={4}
-                            className='px-4 py-4 text-center text-muted-foreground'
-                          >
-                            No products yet. A brand needs at least one active
-                            product to appear on the stock form.
-                          </td>
-                        </tr>
-                      )}
+                <div className='flex flex-wrap gap-1 px-4'>
+                  {brand.measures.map((key) => (
+                    <Badge
+                      key={key}
+                      variant='secondary'
+                      className='font-normal'
+                    >
+                      {measureLabel.get(key) ?? key}
+                    </Badge>
+                  ))}
+                </div>
+
+                {/* Products, in form order */}
+                <div className='flex-1 p-4'>
+                  <p className='mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase'>
+                    Products · {brand.products.length}
+                  </p>
+                  {brand.products.length === 0 ? (
+                    <p className='rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground'>
+                      No products yet. A brand needs at least one active product
+                      to appear on the stock form.
+                    </p>
+                  ) : (
+                    <ul className='divide-y overflow-hidden rounded-lg border'>
                       {brand.products.map((product, index) => (
-                        <tr
+                        <li
                           key={product.id}
                           className={cn(
-                            'border-b last:border-b-0',
-                            !product.isActive && 'text-muted-foreground'
+                            'flex items-center gap-2 px-3 py-2',
+                            !product.isActive &&
+                              'bg-muted/40 text-muted-foreground'
                           )}
                         >
-                          <td className='px-4 py-2 tabular-nums'>
+                          <span className='flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium tabular-nums'>
                             {index + 1}
-                          </td>
-                          <td className='px-4 py-2 font-medium'>
-                            {product.name}
-                          </td>
-                          <td className='px-4 py-2'>
-                            <StatusBadge active={product.isActive} />
-                          </td>
-                          <td className='px-4 py-2'>
-                            <div className='flex justify-end gap-1.5'>
-                              <ActionButton
-                                label={`Move ${product.name} up`}
-                                className='bg-slate-600 hover:bg-slate-700'
-                                disabled={busy || index === 0}
-                                onClick={() =>
-                                  moveProduct.mutate({
-                                    id: product.id,
-                                    direction: 'up',
-                                  })
-                                }
-                              >
-                                <ArrowUp />
-                              </ActionButton>
-                              <ActionButton
-                                label={`Move ${product.name} down`}
-                                className='bg-slate-600 hover:bg-slate-700'
-                                disabled={
-                                  busy || index === brand.products.length - 1
-                                }
-                                onClick={() =>
-                                  moveProduct.mutate({
-                                    id: product.id,
-                                    direction: 'down',
-                                  })
-                                }
-                              >
-                                <ArrowDown />
-                              </ActionButton>
-                              <ActionButton
-                                label={`Edit ${product.name}`}
-                                className='bg-amber-500 hover:bg-amber-600'
-                                onClick={() =>
-                                  setProductTarget({ brand, product })
-                                }
-                              >
-                                <Pencil />
-                              </ActionButton>
-                              <ActionButton
-                                label={`${product.isActive ? 'Deactivate' : 'Activate'} ${product.name}`}
-                                className={
-                                  product.isActive
-                                    ? 'bg-sky-600 hover:bg-sky-700'
-                                    : 'bg-emerald-600 hover:bg-emerald-700'
-                                }
-                                disabled={toggleProduct.isPending}
-                                onClick={() =>
-                                  toggleProduct.mutate({
-                                    id: product.id,
-                                    isActive: !product.isActive,
-                                  })
-                                }
-                              >
-                                {product.isActive ? <Ban /> : <CheckCircle2 />}
-                              </ActionButton>
-                              <ActionButton
-                                label={`Delete ${product.name}`}
-                                className='bg-red-600 hover:bg-red-700'
-                                onClick={() =>
-                                  setToDelete({
-                                    kind: 'product',
-                                    product,
-                                    brand,
-                                  })
-                                }
-                              >
-                                <Trash2 />
-                              </ActionButton>
-                            </div>
-                          </td>
-                        </tr>
+                          </span>
+                          <span className='min-w-0 flex-1'>
+                            <span className='block truncate text-sm font-medium'>
+                              {product.name}
+                            </span>
+                            {!product.isActive && (
+                              <span className='text-xs'>Inactive</span>
+                            )}
+                          </span>
+                          {canManage && (
+                            <ActionsMenu
+                              size='size-7'
+                              label={`Actions for ${product.name}`}
+                              title={product.name}
+                              actions={[
+                                {
+                                  label: 'Move up',
+                                  icon: ArrowUp,
+                                  color: 'bg-slate-600',
+                                  disabled: busy || index === 0,
+                                  onSelect: () =>
+                                    moveProduct.mutate({
+                                      id: product.id,
+                                      direction: 'up',
+                                    }),
+                                },
+                                {
+                                  label: 'Move down',
+                                  icon: ArrowDown,
+                                  color: 'bg-slate-600',
+                                  disabled:
+                                    busy || index === brand.products.length - 1,
+                                  onSelect: () =>
+                                    moveProduct.mutate({
+                                      id: product.id,
+                                      direction: 'down',
+                                    }),
+                                },
+                                {
+                                  label: 'Edit',
+                                  icon: Pencil,
+                                  color: 'bg-amber-500',
+                                  onSelect: () =>
+                                    setProductTarget({ brand, product }),
+                                },
+                                {
+                                  label: product.isActive
+                                    ? 'Deactivate'
+                                    : 'Activate',
+                                  icon: product.isActive ? Ban : CheckCircle2,
+                                  color: product.isActive
+                                    ? 'bg-sky-600'
+                                    : 'bg-emerald-600',
+                                  disabled: toggleProduct.isPending,
+                                  onSelect: () =>
+                                    toggleProduct.mutate({
+                                      id: product.id,
+                                      isActive: !product.isActive,
+                                    }),
+                                },
+                                'separator',
+                                {
+                                  label: 'Delete',
+                                  icon: Trash2,
+                                  color: 'bg-red-600',
+                                  destructive: true,
+                                  onSelect: () =>
+                                    setToDelete({
+                                      kind: 'product',
+                                      product,
+                                      brand,
+                                    }),
+                                },
+                              ]}
+                            />
+                          )}
+                        </li>
                       ))}
-                    </tbody>
-                  </table>
+                    </ul>
+                  )}
                 </div>
-                <div className='border-t px-4 py-2'>
-                  <Button
-                    size='sm'
-                    className='bg-[#5027F5] text-white hover:bg-[#4119d9]'
-                    onClick={() => setProductTarget({ brand, product: null })}
-                  >
-                    <Plus /> Add product to {brand.name}
-                  </Button>
-                </div>
+
+                {canManage && (
+                  <div className='border-t bg-muted/30 px-4 py-3'>
+                    <Button
+                      size='sm'
+                      className='w-full bg-[#5027F5] text-white hover:bg-[#4119d9]'
+                      onClick={() => setProductTarget({ brand, product: null })}
+                      aria-label={`Add product to ${brand.name}`}
+                    >
+                      <Plus /> Add product
+                    </Button>
+                  </div>
+                )}
               </section>
             ))}
           </div>

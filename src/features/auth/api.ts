@@ -49,13 +49,13 @@ export const currentAdminQueryOptions = queryOptions({
 
 /** Only allow in-app paths as post-login redirects (prevents open redirects). */
 export function getSafeRedirect(redirect: string | undefined) {
-  if (!redirect) return '/clients'
+  if (!redirect) return '/'
   try {
     const url = new URL(redirect, window.location.origin)
-    if (url.origin !== window.location.origin) return '/clients'
+    if (url.origin !== window.location.origin) return '/'
     const path = `${url.pathname}${url.search}${url.hash}`
-    return path.startsWith('/login') ? '/clients' : path
+    return path.startsWith('/login') ? '/' : path
   } catch {
-    return '/clients'
+    return '/'
   }
 }

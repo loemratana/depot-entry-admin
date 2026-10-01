@@ -19,7 +19,8 @@ const admin = {
   id: 'admin-1',
   name: 'Administrator',
   email: 'a@b.com',
-  role: 'ADMIN',
+  role: { id: 'role-1', name: 'Super Admin', isSystem: true },
+  permissions: ['outlets.view'],
 }
 
 vi.mock('@/stores/auth-store', () => ({
@@ -100,7 +101,7 @@ describe('UserAuthForm', () => {
       expect(loginMock).not.toHaveBeenCalled()
     })
 
-    it('stores the session and navigates to /clients on success', async () => {
+    it('stores the session and navigates home on success', async () => {
       await userEvent.fill(emailInput, 'a@b.com')
       await userEvent.fill(passwordInput, 'secret')
 
@@ -121,7 +122,7 @@ describe('UserAuthForm', () => {
       })
       await vi.waitFor(() =>
         expect(navigate).toHaveBeenCalledWith({
-          href: '/clients',
+          href: '/',
           replace: true,
         })
       )
@@ -174,7 +175,7 @@ describe('UserAuthForm', () => {
     await userEvent.click(getByRole('button', { name: /Sign in/i }))
 
     await vi.waitFor(() =>
-      expect(navigate).toHaveBeenCalledWith({ href: '/clients', replace: true })
+      expect(navigate).toHaveBeenCalledWith({ href: '/', replace: true })
     )
   })
 })
