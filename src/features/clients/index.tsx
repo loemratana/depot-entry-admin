@@ -10,6 +10,7 @@ import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { AddOutletDialog } from './components/add-outlet-dialog'
 import { ClientDetailSheet } from './components/client-detail-sheet'
 import {
   ClientFormDialog,
@@ -76,6 +77,8 @@ export function Clients() {
   }, [])
 
   const [formState, setFormState] = useState<ClientFormState | null>(null)
+  // Add uses the public outlet form; edit keeps the edit dialog
+  const [addOpen, setAddOpen] = useState(false)
   const [toDelete, setToDelete] = useState<Submission | null>(null)
   const deleteClient = useDeleteClient()
 
@@ -110,7 +113,7 @@ export function Clients() {
             <CopyFormLinkButton />
             {can('outlets.export') && <ClientsExportButton filters={filters} />}
             {can('outlets.create') && (
-              <Button onClick={() => setFormState({ mode: 'create' })}>
+              <Button onClick={() => setAddOpen(true)}>
                 <Plus /> Add outlet
               </Button>
             )}
@@ -150,6 +153,8 @@ export function Clients() {
         onEdit={can('outlets.update') ? editClient : undefined}
         onDelete={can('outlets.delete') ? confirmDelete : undefined}
       />
+
+      <AddOutletDialog open={addOpen} onOpenChange={setAddOpen} />
 
       <ClientFormDialog
         state={formState}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Check,
   FileText,
@@ -23,7 +23,6 @@ import {
 import { GPS_ERROR_MESSAGES, GpsError, readGps } from '../lib/geolocation'
 import { compressImage } from '../lib/image'
 import { type SitePhoto, isSitePhotoReady } from '../lib/site-photo'
-import { SitePhotoDialog } from './site-photo-dialog'
 
 export type { SitePhoto }
 
@@ -54,8 +53,8 @@ function usePreviews(photos: SitePhoto[]) {
 }
 
 /**
- * The form's single upload box. Clicking it offers Upload or Take photo
- * (in-page camera, which asks for camera permission). Each photo is shrunk on
+ * The form's single upload box. Clicking it opens the device's file picker,
+ * which on phones also offers the camera. Each photo is shrunk on
  * the device and gets its own GPS reading (never requested on page load); a
  * spinner shows until both are done. PDFs are kept as documents without GPS.
  */
@@ -67,7 +66,9 @@ export function SitePhotos({
   disabled,
   invalid,
 }: SitePhotosProps) {
-  const [dialogOpen, setDialogOpen] = useState(false)
+  // The box opens the file picker directly; on phones it also offers the camera
+  const inputRef = useRef<HTMLInputElement>(null)
+  const openPicker = () => inputRef.current?.click()
   const [dragging, setDragging] = useState(false)
   const remaining = MAX_FILES - value.length - documents.length
   const locked = disabled || remaining <= 0
@@ -180,11 +181,11 @@ export function SitePhotos({
         aria-disabled={locked}
         aria-invalid={invalid}
         aria-label='Take a photo or choose files'
-        onClick={() => !locked && setDialogOpen(true)}
+        onClick={() => !locked && openPicker()}
         onKeyDown={(e) => {
           if (!locked && (e.key === 'Enter' || e.key === ' ')) {
             e.preventDefault()
-            setDialogOpen(true)
+            openPicker()
           }
         }}
         onDragOver={(e) => {
@@ -213,10 +214,19 @@ export function SitePhotos({
           JPG, PNG, WebP, PDF · ≤ {MAX_FILE_SIZE_MB} MB · max {MAX_FILES}
         </span>
       </div>
-      <SitePhotoDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onFiles={add}
+      <input
+        ref={inputRef}
+        type='file'
+        accept='image/jpeg,image/png,image/webp,application/pdf'
+        multiple
+        className='sr-only'
+        tabIndex={-1}
+        aria-label='Upload files'
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? [])
+          e.target.value = ''
+          if (files.length) add(files)
+        }}
       />
 
       {problems.length > 0 && (

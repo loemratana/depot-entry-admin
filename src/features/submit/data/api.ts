@@ -47,7 +47,13 @@ export async function submitClient(
   {
     idempotencyKey,
     onProgress,
-  }: { idempotencyKey: string; onProgress?: (percent: number) => void }
+    endpoint = '/public/submissions',
+  }: {
+    idempotencyKey: string
+    onProgress?: (percent: number) => void
+    /** The public form; the admin "Add outlet" sends the same form to /admin/submissions */
+    endpoint?: string
+  }
 ) {
   const form = new FormData()
   form.append('clientName', input.clientName)
@@ -78,7 +84,7 @@ export async function submitClient(
   }
 
   const res = await apiClient.post<ApiResponse<SubmitClientResult>>(
-    '/public/submissions',
+    endpoint,
     form,
     {
       headers: { 'Idempotency-Key': idempotencyKey },
