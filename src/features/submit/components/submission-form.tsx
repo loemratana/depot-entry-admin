@@ -254,6 +254,8 @@ function BilingualLabel({
 
 type SubmissionFormProps = {
   onSuccess: (result: SubmitClientResult) => void
+  /** Where the form is sent (default: the public endpoint) */
+  endpoint?: string
   /**
    * Tells the page which stock step is showing, so it can change its heading
    * and show the brand logo: null = not a stock step; brand null = still loading
@@ -266,6 +268,7 @@ export type StockStep = { brand: Brand | null }
 export function SubmissionForm({
   onSuccess,
   onStockStepChange,
+  endpoint,
 }: SubmissionFormProps) {
   // One key per filled-in form, so retries and double taps never create duplicates
   const idempotencyKey = useRef(createIdempotencyKey())
@@ -368,6 +371,7 @@ export function SubmissionForm({
         {
           idempotencyKey: idempotencyKey.current,
           onProgress: setProgress,
+          endpoint,
         }
       ),
     onMutate: () => setProgress(0),
