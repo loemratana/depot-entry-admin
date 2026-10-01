@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/handle-server-error'
+import { useCan } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -181,6 +182,9 @@ export function ClientDetailSheet({
   const addFiles = useAddClientFiles()
   const removeFile = useRemoveClientFile()
   const fileCount = detail.data?.files.length ?? 0
+  const can = useCan()
+  const canEditFiles = can('outlets.files')
+  const canViewMap = can('map.view')
 
   const upload = (picked: FileList | null) => {
     if (!client || !picked?.length) return
@@ -273,7 +277,7 @@ export function ClientDetailSheet({
                 </dl>
               </Section>
 
-              {detail.data && (
+              {detail.data && canViewMap && (
                 <PhotoLocations
                   submissionId={detail.data.id}
                   files={detail.data.files}
@@ -283,18 +287,11 @@ export function ClientDetailSheet({
 
               <Separator />
 
-              <Section title='Sale GB'>
-                <dl>
-                  <Field label='Sale GB'>{client.saleGb?.name}</Field>
-                </dl>
-              </Section>
-
-              <Separator />
-
               <Section
                 title='Documents'
                 action={
-                  detail.data && (
+                  detail.data &&
+                  canEditFiles && (
                     <>
                       <Button
                         size='sm'
@@ -361,7 +358,9 @@ export function ClientDetailSheet({
                   <ClientDocuments
                     files={detail.data.files}
                     // The last file cannot be removed: a client needs at least one
-                    onRemove={fileCount > 1 ? setToRemove : undefined}
+                    onRemove={
+                      canEditFiles && fileCount > 1 ? setToRemove : undefined
+                    }
                   />
                 )}
               </Section>

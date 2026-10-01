@@ -12,12 +12,13 @@ function renderLocation(value: Submission['province']) {
   return name ? <span className='text-nowrap'>{name}</span> : empty
 }
 
+/** Row actions; one left out (no permission) hides its button */
 export type ClientRowActions = {
   onView: (submission: Submission) => void
-  onViewMap: (submission: Submission) => void
-  onViewStock: (submission: Submission) => void
-  onEdit: (submission: Submission) => void
-  onDelete: (submission: Submission) => void
+  onViewMap?: (submission: Submission) => void
+  onViewStock?: (submission: Submission) => void
+  onEdit?: (submission: Submission) => void
+  onDelete?: (submission: Submission) => void
 }
 
 export function getClientsColumns({
@@ -113,47 +114,55 @@ export function getClientsColumns({
             >
               <Eye />
             </ActionButton>
-            <ActionButton
-              label={`View stock of ${outlet.clientName}`}
-              tooltip='View stock'
-              className='bg-emerald-600 hover:bg-emerald-700'
-              onClick={() => onViewStock(outlet)}
-            >
-              <Package />
-            </ActionButton>
-            <ActionButton
-              label={
-                outlet.hasGps
-                  ? `View ${outlet.clientName} on the map`
-                  : `${outlet.clientName} has no GPS photo to show on the map`
-              }
-              tooltip={
-                outlet.hasGps
-                  ? 'View on map'
-                  : 'No GPS photo to show on the map'
-              }
-              className='bg-sky-600 hover:bg-sky-700'
-              disabled={!outlet.hasGps}
-              onClick={() => onViewMap(outlet)}
-            >
-              <MapIcon />
-            </ActionButton>
-            <ActionButton
-              label={`Edit ${outlet.clientName}`}
-              tooltip='Edit'
-              className='bg-amber-500 hover:bg-amber-600'
-              onClick={() => onEdit(outlet)}
-            >
-              <Pencil />
-            </ActionButton>
-            <ActionButton
-              label={`Delete ${outlet.clientName}`}
-              tooltip='Delete'
-              className='bg-red-600 hover:bg-red-700'
-              onClick={() => onDelete(outlet)}
-            >
-              <Trash2 />
-            </ActionButton>
+            {onViewStock && (
+              <ActionButton
+                label={`View stock of ${outlet.clientName}`}
+                tooltip='View stock'
+                className='bg-emerald-600 hover:bg-emerald-700'
+                onClick={() => onViewStock(outlet)}
+              >
+                <Package />
+              </ActionButton>
+            )}
+            {onViewMap && (
+              <ActionButton
+                label={
+                  outlet.hasGps
+                    ? `View ${outlet.clientName} on the map`
+                    : `${outlet.clientName} has no GPS photo to show on the map`
+                }
+                tooltip={
+                  outlet.hasGps
+                    ? 'View on map'
+                    : 'No GPS photo to show on the map'
+                }
+                className='bg-sky-600 hover:bg-sky-700'
+                disabled={!outlet.hasGps}
+                onClick={() => onViewMap(outlet)}
+              >
+                <MapIcon />
+              </ActionButton>
+            )}
+            {onEdit && (
+              <ActionButton
+                label={`Edit ${outlet.clientName}`}
+                tooltip='Edit'
+                className='bg-amber-500 hover:bg-amber-600'
+                onClick={() => onEdit(outlet)}
+              >
+                <Pencil />
+              </ActionButton>
+            )}
+            {onDelete && (
+              <ActionButton
+                label={`Delete ${outlet.clientName}`}
+                tooltip='Delete'
+                className='bg-red-600 hover:bg-red-700'
+                onClick={() => onDelete(outlet)}
+              >
+                <Trash2 />
+              </ActionButton>
+            )}
           </div>
         )
       },

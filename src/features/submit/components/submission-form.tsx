@@ -504,7 +504,7 @@ export function SubmissionForm({
                       type='tel'
                       inputMode='tel'
                       autoComplete='tel'
-                      placeholder='012 345 678'
+                      placeholder='ឧ. 012 345 678'
                       {...field}
                     />
                   </FormControl>

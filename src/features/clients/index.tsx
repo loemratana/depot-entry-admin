@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
+import { useCan } from '@/lib/permissions'
 import { Button } from '@/components/ui/button'
 import { ConfigDrawer } from '@/components/config-drawer'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -29,6 +30,7 @@ export function Clients() {
   const navigate = route.useNavigate()
   const navigateTo = useNavigate()
   const filters = pickFilters(search)
+  const can = useCan()
   const hasActiveFilters = Object.keys(filters).length > 0
 
   const [selected, setSelected] = useState<Submission | null>(null)
@@ -106,10 +108,12 @@ export function Clients() {
           </div>
           <div className='flex flex-wrap gap-2'>
             <CopyFormLinkButton />
-            <ClientsExportButton filters={filters} />
-            <Button onClick={() => setFormState({ mode: 'create' })}>
-              <Plus /> Add outlet
-            </Button>
+            {can('outlets.export') && <ClientsExportButton filters={filters} />}
+            {can('outlets.create') && (
+              <Button onClick={() => setFormState({ mode: 'create' })}>
+                <Plus /> Add outlet
+              </Button>
+            )}
           </div>
         </div>
 
@@ -126,10 +130,10 @@ export function Clients() {
           hasActiveFilters={hasActiveFilters}
           onClearFilters={clearFilters}
           onView={viewSubmission}
-          onViewMap={viewOnMap}
-          onViewStock={viewStock}
-          onEdit={editClient}
-          onDelete={confirmDelete}
+          onViewMap={can('map.view') ? viewOnMap : undefined}
+          onViewStock={can('stock.view') ? viewStock : undefined}
+          onEdit={can('outlets.update') ? editClient : undefined}
+          onDelete={can('outlets.delete') ? confirmDelete : undefined}
         />
       </Main>
 
@@ -143,8 +147,8 @@ export function Clients() {
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         submission={selected}
-        onEdit={editClient}
-        onDelete={confirmDelete}
+        onEdit={can('outlets.update') ? editClient : undefined}
+        onDelete={can('outlets.delete') ? confirmDelete : undefined}
       />
 
       <ClientFormDialog

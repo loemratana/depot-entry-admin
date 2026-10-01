@@ -9,7 +9,10 @@ export interface AuthUser {
   id: string
   name: string
   email: string
-  role: string
+  /** null for an account without a role (it can only sign in and out) */
+  role: { id: string; name: string; isSystem: boolean } | null
+  /** What this user may do, e.g. "outlets.view" (see lib/permissions) */
+  permissions: string[]
 }
 
 /** Tokens returned by `/api/admin/auth/login` and `/refresh` */
