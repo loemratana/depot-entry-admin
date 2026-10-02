@@ -1,5 +1,6 @@
 import {
   KeyRound,
+  LayoutDashboard,
   MapIcon,
   MapPin,
   Package,
@@ -16,6 +17,12 @@ export const sidebarData: SidebarData = {
     {
       title: 'Outlet System',
       items: [
+        {
+          title: 'Dashboard',
+          url: '/dashboard',
+          icon: LayoutDashboard,
+          permissions: ['outlets.view'],
+        },
         {
           title: 'Outlet',
           url: '/clients',

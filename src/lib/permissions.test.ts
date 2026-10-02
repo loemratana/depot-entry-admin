@@ -20,7 +20,7 @@ describe('permissions', () => {
   })
 
   it('home is the first page the user may open, else 403', () => {
-    expect(homePageFor(user(['outlets.view', 'stock.view']))).toBe('/clients')
+    expect(homePageFor(user(['outlets.view', 'stock.view']))).toBe('/dashboard')
     expect(homePageFor(user(['stock.view']))).toBe('/stock-reports')
     expect(homePageFor(user(['catalog.manage']))).toBe('/products')
     expect(homePageFor(user(['roles.manage']))).toBe('/roles')
@@ -35,7 +35,10 @@ describe('permissions', () => {
       }))
 
     expect(titles(['outlets.view', 'stock.view'])).toEqual([
-      { group: 'Outlet System', items: ['Outlet', 'Stock'] },
+      {
+        group: 'Outlet System',
+        items: ['Dashboard', 'Outlet', 'Stock'],
+      },
     ])
     expect(titles(['users.view'])).toEqual([
       { group: 'Administration', items: ['Users'] },

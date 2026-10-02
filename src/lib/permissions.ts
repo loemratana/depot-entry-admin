@@ -56,6 +56,7 @@ export function requirePermission(...permissions: Permission[]) {
 
 /** Pages in sidebar order, each with the permission that opens it */
 export const PAGE_PERMISSIONS: { to: string; permissions: Permission[] }[] = [
+  { to: '/dashboard', permissions: ['outlets.view'] },
   { to: '/clients', permissions: ['outlets.view'] },
   { to: '/client-map', permissions: ['map.view'] },
   { to: '/stock-reports', permissions: ['stock.view'] },

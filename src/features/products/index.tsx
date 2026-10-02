@@ -376,6 +376,11 @@ export function BrandsProducts() {
                             <span className='block truncate text-sm font-medium'>
                               {product.name}
                             </span>
+                            {product.shortName && (
+                              <span className='block truncate text-xs text-muted-foreground'>
+                                Dashboard: {product.shortName}
+                              </span>
+                            )}
                             {!product.isActive && (
                               <span className='text-xs'>Inactive</span>
                             )}

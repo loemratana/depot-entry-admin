@@ -23,6 +23,7 @@ import { Route as AuthenticatedStockReportsIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedRolesIndexRouteImport } from './routes/_authenticated/roles/index'
 import { Route as AuthenticatedProductsIndexRouteImport } from './routes/_authenticated/products/index'
 import { Route as AuthenticatedLocationsIndexRouteImport } from './routes/_authenticated/locations/index'
+import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients/index'
 import { Route as AuthenticatedClientMapIndexRouteImport } from './routes/_authenticated/client-map/index'
 
@@ -98,6 +99,12 @@ const AuthenticatedLocationsIndexRoute =
     path: '/locations/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDashboardIndexRoute =
+  AuthenticatedDashboardIndexRouteImport.update({
+    id: '/dashboard/',
+    path: '/dashboard/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClientsIndexRoute =
   AuthenticatedClientsIndexRouteImport.update({
     id: '/clients/',
@@ -122,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/submit': typeof publicSubmitRoute
   '/client-map/': typeof AuthenticatedClientMapIndexRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
+  '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/locations/': typeof AuthenticatedLocationsIndexRoute
   '/products/': typeof AuthenticatedProductsIndexRoute
   '/roles/': typeof AuthenticatedRolesIndexRoute
@@ -139,6 +147,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/client-map': typeof AuthenticatedClientMapIndexRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
+  '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/locations': typeof AuthenticatedLocationsIndexRoute
   '/products': typeof AuthenticatedProductsIndexRoute
   '/roles': typeof AuthenticatedRolesIndexRoute
@@ -158,6 +167,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/client-map/': typeof AuthenticatedClientMapIndexRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
+  '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/locations/': typeof AuthenticatedLocationsIndexRoute
   '/_authenticated/products/': typeof AuthenticatedProductsIndexRoute
   '/_authenticated/roles/': typeof AuthenticatedRolesIndexRoute
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/submit'
     | '/client-map/'
     | '/clients/'
+    | '/dashboard/'
     | '/locations/'
     | '/products/'
     | '/roles/'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/'
     | '/client-map'
     | '/clients'
+    | '/dashboard'
     | '/locations'
     | '/products'
     | '/roles'
@@ -212,6 +224,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/client-map/'
     | '/_authenticated/clients/'
+    | '/_authenticated/dashboard/'
     | '/_authenticated/locations/'
     | '/_authenticated/products/'
     | '/_authenticated/roles/'
@@ -330,6 +343,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLocationsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/dashboard/': {
+      id: '/_authenticated/dashboard/'
+      path: '/dashboard'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clients/': {
       id: '/_authenticated/clients/'
       path: '/clients'
@@ -351,6 +371,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedClientMapIndexRoute: typeof AuthenticatedClientMapIndexRoute
   AuthenticatedClientsIndexRoute: typeof AuthenticatedClientsIndexRoute
+  AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedLocationsIndexRoute: typeof AuthenticatedLocationsIndexRoute
   AuthenticatedProductsIndexRoute: typeof AuthenticatedProductsIndexRoute
   AuthenticatedRolesIndexRoute: typeof AuthenticatedRolesIndexRoute
@@ -362,6 +383,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedClientMapIndexRoute: AuthenticatedClientMapIndexRoute,
   AuthenticatedClientsIndexRoute: AuthenticatedClientsIndexRoute,
+  AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedLocationsIndexRoute: AuthenticatedLocationsIndexRoute,
   AuthenticatedProductsIndexRoute: AuthenticatedProductsIndexRoute,
   AuthenticatedRolesIndexRoute: AuthenticatedRolesIndexRoute,
