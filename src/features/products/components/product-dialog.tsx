@@ -39,6 +39,7 @@ export function ProductDialog({
   onSaved,
 }: ProductDialogProps) {
   const [name, setName] = useState('')
+  const [shortName, setShortName] = useState('')
   const [isActive, setIsActive] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const createProduct = useCreateProduct()
@@ -53,6 +54,7 @@ export function ProductDialog({
     setOpenedFor(target)
     if (target) {
       setName(target.product?.name ?? '')
+      setShortName(target.product?.shortName ?? '')
       setIsActive(target.product?.isActive ?? true)
       setError(null)
     }
@@ -66,12 +68,12 @@ export function ProductDialog({
       if (editing)
         await updateProduct.mutateAsync({
           id: editing.id,
-          changes: { name, isActive },
+          changes: { name, shortName, isActive },
         })
       else
         await createProduct.mutateAsync({
           brandId: target.brand.id,
-          input: { name, isActive },
+          input: { name, shortName, isActive },
         })
       refresh()
       onSaved(editing ? 'Product updated' : 'Product added')
@@ -106,6 +108,25 @@ export function ProductDialog({
               maxLength={150}
               autoFocus
             />
+          </div>
+          <div className='grid gap-2'>
+            <Label htmlFor='product-short-name'>
+              Short name{' '}
+              <span className='font-normal text-muted-foreground'>
+                (optional)
+              </span>
+            </Label>
+            <Input
+              id='product-short-name'
+              value={shortName}
+              onChange={(e) => setShortName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && void save()}
+              placeholder='e.g. GB Gold'
+              maxLength={30}
+            />
+            <p className='text-xs text-muted-foreground'>
+              Shown on the dashboard card. Leave empty to use the product name.
+            </p>
           </div>
           <label className='flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm'>
             <span>

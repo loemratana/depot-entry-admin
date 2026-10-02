@@ -7,6 +7,8 @@ import { type Measure, type MeasureKey } from '@/features/stock/data/api'
 export type AdminProduct = {
   id: string
   name: string
+  /** Label on the dashboard card, e.g. "GB Gold"; empty = the name */
+  shortName: string
   isActive: boolean
   sortOrder: number
 }
@@ -30,7 +32,11 @@ export type BrandInput = {
   isActive: boolean
 }
 
-export type ProductInput = { name: string; isActive: boolean }
+export type ProductInput = {
+  name: string
+  shortName: string
+  isActive: boolean
+}
 
 const base = '/admin/stock'
 const brandsKey = ['stock', 'brands'] as const
