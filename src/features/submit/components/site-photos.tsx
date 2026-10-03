@@ -248,10 +248,7 @@ export function SitePhotos({
             return (
               <li
                 key={photo.photoId}
-                className={cn(
-                  'relative aspect-square overflow-hidden rounded-md border bg-muted',
-                  failed && 'border-destructive'
-                )}
+                className='relative aspect-square overflow-hidden rounded-md border bg-muted'
                 data-state={ready ? 'ready' : failed ? 'failed' : 'loading'}
               >
                 <img
@@ -270,23 +267,32 @@ export function SitePhotos({
                   </div>
                 )}
 
-                {failed && (
-                  <div className='absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/55 p-1'>
-                    <MapPinOff className='size-5 text-white' />
-                    <Button
-                      type='button'
-                      size='sm'
-                      className='h-7 bg-white px-2 text-xs text-black hover:bg-white/90'
-                      disabled={disabled}
-                      onClick={() => locate([photo.photoId])}
+                {failed && !photo.preparing && (
+                  // Still accepted; sent without GPS unless a retry succeeds
+                  <div className='absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/60 px-1.5 py-1'>
+                    <span
+                      className='flex items-center gap-1 text-[10px] leading-none text-white'
+                      title='No location · គ្មានទីតាំង'
                     >
-                      <RotateCw />
-                      Retry
-                    </Button>
+                      <MapPinOff className='size-3.5 shrink-0' />
+                      No GPS
+                    </span>
+                    <WithTooltip label='ព្យាយាមម្ដងទៀត · Try location again'>
+                      <Button
+                        type='button'
+                        size='icon'
+                        className='size-6 bg-white text-black hover:bg-white/90'
+                        disabled={disabled}
+                        onClick={() => locate([photo.photoId])}
+                        aria-label='Try location again'
+                      >
+                        <RotateCw className='size-3.5' />
+                      </Button>
+                    </WithTooltip>
                   </div>
                 )}
 
-                {ready && (
+                {ready && !failed && (
                   <span
                     className='absolute start-1 bottom-1 flex size-5 items-center justify-center rounded-full bg-emerald-600 text-white'
                     title='Ready'
@@ -313,11 +319,17 @@ export function SitePhotos({
       )}
 
       {failedMessages.length > 0 && (
-        <ul className='grid gap-1 text-sm text-destructive'>
+        <ul className='grid gap-1 text-sm text-muted-foreground'>
           {failedMessages.map((message) => (
             <li key={message} className='flex items-start gap-1.5'>
               <MapPinOff className='mt-0.5 size-4 shrink-0' />
-              {message}
+              <span>
+                {message}
+                <span className='block text-xs'>
+                  រូបថតនឹងផ្ញើដោយគ្មានទីតាំង · The photo will be sent without a
+                  location. Allow location and tap retry to add it.
+                </span>
+              </span>
             </li>
           ))}
         </ul>

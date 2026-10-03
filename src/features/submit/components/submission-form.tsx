@@ -97,12 +97,12 @@ const formSchema = z
         ) as Record<(typeof MEASURE_KEYS)[number], typeof quantity>
       )
     ),
-    // Every site photo needs its GPS before the form can be sent
+    // Photos must finish shrinking and the location attempt; GPS itself is optional
     sitePhotos: z
       .array(z.custom<SitePhoto>())
       .refine((photos) => photos.every(isSitePhotoReady), {
         message:
-          'សូមរង់ចាំ GPS ឬលុបរូបថតដែលគ្មានទីតាំង · Wait for GPS, or remove photos without a location',
+          'សូមរង់ចាំរូបថតរៀបចំរួចរាល់ · Please wait until the photos are ready',
       }),
     files: z.array(z.instanceof(File)),
   })
@@ -354,6 +354,13 @@ export function SubmissionForm({
           sitePhotos: values.sitePhotos.flatMap(({ photoId, file, gps }) =>
             gps ? [{ photoId, file, gps }] : []
           ),
+          // Photos without a location (not allowed or unavailable) are sent as plain files
+          files: [
+            ...values.files,
+            ...values.sitePhotos
+              .filter((photo) => !photo.gps)
+              .map((photo) => photo.file),
+          ],
           // Every catalog product is sent; blank boxes count as 0
           stockItems: (catalog.data?.brands ?? []).flatMap((brand) =>
             brand.products.map((product) => {

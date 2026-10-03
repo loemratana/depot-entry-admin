@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { type AuthUser } from '@/stores/auth-store'
 import { hasPermission } from '@/lib/permissions'
-import { type SidebarData } from '../types'
+import { type NavItem, type SidebarData } from '../types'
 
 export const sidebarData: SidebarData = {
   navGroups: [
@@ -19,9 +19,19 @@ export const sidebarData: SidebarData = {
       items: [
         {
           title: 'Dashboard',
-          url: '/dashboard',
           icon: LayoutDashboard,
-          permissions: ['outlets.view'],
+          items: [
+            {
+              title: 'Overview',
+              url: '/dashboard',
+              permissions: ['outlets.view'],
+            },
+            {
+              title: 'Stock by Province',
+              url: '/dashboard/provinces',
+              permissions: ['stock.view'],
+            },
+          ],
         },
         {
           title: 'Outlet',
@@ -80,9 +90,16 @@ export function visibleNavGroups(user: AuthUser | null) {
   return sidebarData.navGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter(
-        (item) => !item.permissions || hasPermission(user, ...item.permissions)
-      ),
+      items: group.items.flatMap((item): NavItem[] => {
+        if (item.permissions && !hasPermission(user, ...item.permissions))
+          return []
+        if (!item.items) return [item]
+        // A submenu keeps only the links this user can open, and disappears when empty
+        const items = item.items.filter(
+          (sub) => !sub.permissions || hasPermission(user, ...sub.permissions)
+        )
+        return items.length ? [{ ...item, items }] : []
+      }),
     }))
     .filter((group) => group.items.length > 0)
 }
