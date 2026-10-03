@@ -159,20 +159,18 @@ export function ProvinceStockChart({ data }: { data: ProvinceStock }) {
           emphasis: { focus: 'series' },
           // The product's cases written inside its coloured segment
           label: {
-            show: true,
             position: 'inside',
             color: '#ffffff',
             fontFamily: FONT,
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 600,
-            formatter: ({ value }: { value: number }) =>
-              value > 0 ? value.toLocaleString() : '',
+            align: 'center',
+            verticalAlign: 'middle',
+            // Shown and sized per segment by relayoutLabels()
+            show: false,
+            // Same text as measured in labelFor(): 1,380 not 1380
+            formatter: ({ value }: { value: number }) => value.toLocaleString(),
           },
-          // Hide a number only when it does not fit inside its segment
-          labelLayout: (params: {
-            rect: { width: number }
-            labelRect: { width: number }
-          }) => ({ hide: params.labelRect.width + 4 > params.rect.width }),
           data: provinces.map((p) => p.cases[index]),
         })),
         // Invisible series that prints the province total at the end of each bar
@@ -195,7 +193,46 @@ export function ProvinceStockChart({ data }: { data: ProvinceStock }) {
       ],
     })
 
-    const resize = new ResizeObserver(() => chart.resize())
+    // A segment's pixel width is only known once the chart has laid out its
+    // axis, so measure it, then redraw the labels (and again on every resize)
+    let pixelsPerCase = 0
+    const measure = document.createElement('canvas').getContext('2d')
+    // Largest font that fits the segment with ~3px each side; bars keep their true length
+    const LABEL_SIZES = [12, 10, 9]
+    const SIDE_PADDING = 3
+    const labelFor = (value: number) => {
+      if (value <= 0 || !pixelsPerCase || !measure) return { show: false }
+      const width = value * pixelsPerCase
+      const text = value.toLocaleString()
+      for (const fontSize of LABEL_SIZES) {
+        measure.font = `600 ${fontSize}px ${FONT}`
+        if (measure.measureText(text).width + SIDE_PADDING * 2 <= width)
+          return { show: true, fontSize }
+      }
+      // Does not fit even at 9px: no number (the tooltip still has it)
+      return { show: false }
+    }
+    const relayoutLabels = () => {
+      const zero = chart.convertToPixel({ xAxisIndex: 0 }, 0)
+      const one = chart.convertToPixel({ xAxisIndex: 0 }, 1)
+      const next = Math.abs(one - zero)
+      if (next === pixelsPerCase) return
+      pixelsPerCase = next
+      chart.setOption({
+        series: data.products.map((_, index) => ({
+          data: provinces.map((p) => ({
+            value: p.cases[index],
+            label: labelFor(p.cases[index]),
+          })),
+        })),
+      })
+    }
+    relayoutLabels()
+
+    const resize = new ResizeObserver(() => {
+      chart.resize()
+      relayoutLabels()
+    })
     resize.observe(ref.current)
     return () => {
       resize.disconnect()
