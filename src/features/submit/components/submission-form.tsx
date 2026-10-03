@@ -51,6 +51,7 @@ import {
   createIdempotencyKey,
   normalizePhone,
 } from '../lib/files'
+import { GPS_ERROR_MESSAGES, GpsError, readGps } from '../lib/geolocation'
 import { type SitePhoto, isSitePhotoReady } from '../lib/site-photo'
 import { pickedLocationId } from '../lib/typed-location'
 import { type Option, OptionCombobox } from './option-combobox'
@@ -97,7 +98,7 @@ const formSchema = z
         ) as Record<(typeof MEASURE_KEYS)[number], typeof quantity>
       )
     ),
-    // Photos must finish shrinking and the location attempt; GPS itself is optional
+    // Photos must finish shrinking first; GPS is checked (and fetched if missing) on Submit
     sitePhotos: z
       .array(z.custom<SitePhoto>())
       .refine((photos) => photos.every(isSitePhotoReady), {
@@ -354,13 +355,6 @@ export function SubmissionForm({
           sitePhotos: values.sitePhotos.flatMap(({ photoId, file, gps }) =>
             gps ? [{ photoId, file, gps }] : []
           ),
-          // Photos without a location (not allowed or unavailable) are sent as plain files
-          files: [
-            ...values.files,
-            ...values.sitePhotos
-              .filter((photo) => !photo.gps)
-              .map((photo) => photo.file),
-          ],
           // Every catalog product is sent; blank boxes count as 0
           stockItems: (catalog.data?.brands ?? []).flatMap((brand) =>
             brand.products.map((product) => {
@@ -432,7 +426,43 @@ export function SubmissionForm({
     },
   })
 
-  const isSubmitting = mutation.isPending
+  // Photos need GPS: any photo still without it gets the current location on Submit
+  const [locating, setLocating] = useState(false)
+  const submitWithGps = async (values: FormOutput) => {
+    const missing = new Set(
+      values.sitePhotos.filter((photo) => !photo.gps).map((p) => p.photoId)
+    )
+    if (missing.size) {
+      setLocating(true)
+      try {
+        const gps = await readGps()
+        updateSitePhotos((photos) =>
+          photos.map((photo) =>
+            missing.has(photo.photoId)
+              ? { ...photo, status: 'ready', gps, error: undefined }
+              : photo
+          )
+        )
+        values = {
+          ...values,
+          sitePhotos: values.sitePhotos.map((photo) =>
+            missing.has(photo.photoId) ? { ...photo, gps } : photo
+          ),
+        }
+      } catch (error) {
+        const code = error instanceof GpsError ? error.code : 'unavailable'
+        form.setError('sitePhotos', {
+          message: `ត្រូវការទីតាំង ដើម្បីបញ្ជូន · Location is required to submit. ${GPS_ERROR_MESSAGES[code]}`,
+        })
+        return
+      } finally {
+        setLocating(false)
+      }
+    }
+    mutation.mutate(values)
+  }
+
+  const isSubmitting = mutation.isPending || locating
   const fieldErrors = mutation.isError ? getFieldErrors(mutation.error) : []
   const showGeneralError =
     mutation.isError &&
@@ -467,7 +497,7 @@ export function SubmissionForm({
                 event.preventDefault()
                 void next()
               }
-            : form.handleSubmit((values) => mutation.mutate(values))
+            : form.handleSubmit((values) => submitWithGps(values))
         }
         className='grid gap-5 *:min-w-0'
         noValidate
@@ -767,9 +797,11 @@ export function SubmissionForm({
                 disabled={isSubmitting}
               >
                 {isSubmitting ? <Loader2 className='animate-spin' /> : <Send />}
-                {isSubmitting
-                  ? `កំពុងបញ្ជូន... ${progress}%`
-                  : 'បញ្ជូន · Submit'}
+                {locating
+                  ? 'កំពុងយកទីតាំង · Getting location…'
+                  : isSubmitting
+                    ? `កំពុងបញ្ជូន... ${progress}%`
+                    : 'បញ្ជូន · Submit'}
               </Button>
             )}
           </div>

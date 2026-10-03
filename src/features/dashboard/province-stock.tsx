@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { AlertCircle, RotateCw, X } from 'lucide-react'
+import { AlertCircle, FileDown, Loader2, RotateCw, X } from 'lucide-react'
+import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/handle-server-error'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -35,6 +36,25 @@ export function ProvinceStock() {
   const totalOutlets =
     query.data?.provinces.reduce((sum, p) => sum + p.outlets, 0) ?? 0
 
+  // One-page A4 landscape PDF of the chart, built in the browser
+  const [exporting, setExporting] = useState(false)
+  const exportPdf = async () => {
+    if (!query.data) return
+    setExporting(true)
+    try {
+      const { exportProvinceStockPdf } = await import('./lib/province-pdf')
+      await exportProvinceStockPdf({
+        data: query.data,
+        period: periodLabel(period),
+        summary: `${totalOutlets.toLocaleString()} outlet${totalOutlets === 1 ? '' : 's'} · ${withStock} of ${query.data.provinces.length} provinces with stock · ${grandTotal.toLocaleString()} cases in total`,
+      })
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Unable to export the PDF.'))
+    } finally {
+      setExporting(false)
+    }
+  }
+
   return (
     <>
       <Header fixed>
@@ -46,13 +66,23 @@ export function ProvinceStock() {
       </Header>
 
       <Main className='flex flex-1 flex-col gap-4 sm:gap-6'>
-        <div>
-          <h2 className='text-2xl font-bold tracking-tight'>
-            Stock by Province
-          </h2>
-          <p className='text-muted-foreground'>
-            ចំនួនកេស (cases) per province, by product · {periodLabel(period)}
-          </p>
+        <div className='flex flex-wrap items-end justify-between gap-2'>
+          <div>
+            <h2 className='text-2xl font-bold tracking-tight'>
+              Stock by Province
+            </h2>
+            <p className='text-muted-foreground'>
+              ចំនួនកេស (cases) per province, by product · {periodLabel(period)}
+            </p>
+          </div>
+          <Button
+            variant='outline'
+            onClick={exportPdf}
+            disabled={exporting || !query.data || query.isPlaceholderData}
+          >
+            {exporting ? <Loader2 className='animate-spin' /> : <FileDown />}
+            {exporting ? 'Exporting...' : 'Export PDF'}
+          </Button>
         </div>
 
         <div className='flex flex-wrap items-center gap-2'>
