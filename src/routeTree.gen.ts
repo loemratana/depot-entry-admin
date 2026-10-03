@@ -26,6 +26,7 @@ import { Route as AuthenticatedLocationsIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients/index'
 import { Route as AuthenticatedClientMapIndexRouteImport } from './routes/_authenticated/client-map/index'
+import { Route as AuthenticatedDashboardProvincesIndexRouteImport } from './routes/_authenticated/dashboard/provinces/index'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -117,6 +118,12 @@ const AuthenticatedClientMapIndexRoute =
     path: '/client-map/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDashboardProvincesIndexRoute =
+  AuthenticatedDashboardProvincesIndexRouteImport.update({
+    id: '/dashboard/provinces/',
+    path: '/dashboard/provinces/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/roles/': typeof AuthenticatedRolesIndexRoute
   '/stock-reports/': typeof AuthenticatedStockReportsIndexRoute
   '/users/': typeof AuthenticatedUsersIndexRoute
+  '/dashboard/provinces/': typeof AuthenticatedDashboardProvincesIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof authLoginRoute
@@ -153,6 +161,7 @@ export interface FileRoutesByTo {
   '/roles': typeof AuthenticatedRolesIndexRoute
   '/stock-reports': typeof AuthenticatedStockReportsIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
+  '/dashboard/provinces': typeof AuthenticatedDashboardProvincesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -173,6 +182,7 @@ export interface FileRoutesById {
   '/_authenticated/roles/': typeof AuthenticatedRolesIndexRoute
   '/_authenticated/stock-reports/': typeof AuthenticatedStockReportsIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
+  '/_authenticated/dashboard/provinces/': typeof AuthenticatedDashboardProvincesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
     | '/roles/'
     | '/stock-reports/'
     | '/users/'
+    | '/dashboard/provinces/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/roles'
     | '/stock-reports'
     | '/users'
+    | '/dashboard/provinces'
   id:
     | '__root__'
     | '/_authenticated'
@@ -230,6 +242,7 @@ export interface FileRouteTypes {
     | '/_authenticated/roles/'
     | '/_authenticated/stock-reports/'
     | '/_authenticated/users/'
+    | '/_authenticated/dashboard/provinces/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -364,6 +377,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientMapIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/dashboard/provinces/': {
+      id: '/_authenticated/dashboard/provinces/'
+      path: '/dashboard/provinces'
+      fullPath: '/dashboard/provinces/'
+      preLoaderRoute: typeof AuthenticatedDashboardProvincesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -377,6 +397,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRolesIndexRoute: typeof AuthenticatedRolesIndexRoute
   AuthenticatedStockReportsIndexRoute: typeof AuthenticatedStockReportsIndexRoute
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
+  AuthenticatedDashboardProvincesIndexRoute: typeof AuthenticatedDashboardProvincesIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -389,6 +410,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRolesIndexRoute: AuthenticatedRolesIndexRoute,
   AuthenticatedStockReportsIndexRoute: AuthenticatedStockReportsIndexRoute,
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,
+  AuthenticatedDashboardProvincesIndexRoute:
+    AuthenticatedDashboardProvincesIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

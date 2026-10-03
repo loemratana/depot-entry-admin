@@ -12,6 +12,10 @@ export type SitePhoto = {
   error?: GpsErrorCode
 }
 
-/** Ready to send: shrunk and located */
+/**
+ * Ready to send: shrunk, and the location attempt is over. Location is optional:
+ * if the user refuses it (or it is unavailable) the photo is sent without GPS.
+ */
 export const isSitePhotoReady = (photo: SitePhoto) =>
-  photo.status === 'ready' && !!photo.gps && !photo.preparing
+  photo.status !== 'locating' && !photo.preparing
+

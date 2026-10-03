@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import {
   AlertCircle,
+  Boxes,
   CalendarCheck,
   Package,
   RotateCw,
@@ -317,6 +318,19 @@ export function Dashboard() {
               }
               footer={period}
             />
+            {query.data.totalStock && (
+              <StatCard
+                className='bg-slate-800'
+                label='Total stock'
+                value={query.data.totalStock.cases}
+                icon={
+                  <IconBadge>
+                    <Boxes className='size-5' />
+                  </IconBadge>
+                }
+                footer={`${measureLabel.get('cases') ?? 'cases'} · all products · ${number(query.data.totalStock.outlets)} outlet${query.data.totalStock.outlets === 1 ? '' : 's'}`}
+              />
+            )}
             {query.data.products?.map((product, index) => (
               <ProductCard
                 key={product.productId}
