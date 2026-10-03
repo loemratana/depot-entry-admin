@@ -97,9 +97,9 @@ export function FilePicker({
         )}
       >
         <ImagePlus className='mb-1 size-6 text-muted-foreground' />
-        <span className='text-sm font-medium'>ថតរូប ឬជ្រើសរើសឯកសារ</span>
+        <span className='text-sm font-medium'>ជ្រើសរើសរូបភាព ឬឯកសារ</span>
         <span className='text-sm text-muted-foreground'>
-          Take a photo or choose files
+          Choose photos or files
         </span>
         <span className='text-xs text-muted-foreground'>
           JPG, PNG, WebP, PDF · ≤ {MAX_FILE_SIZE_MB} MB · max {MAX_FILES}

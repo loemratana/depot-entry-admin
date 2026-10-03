@@ -90,7 +90,27 @@ export function ProvinceStockChart({ data }: { data: ProvinceStock }) {
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
         textStyle: { fontFamily: FONT },
-        valueFormatter: (value: number) => value.toLocaleString(),
+        // Province, its outlets, then each product's cases
+        formatter: (
+          items: {
+            dataIndex: number
+            marker: string
+            seriesName: string
+            value: number
+          }[]
+        ) => {
+          const rows = items.filter((item) => item.seriesName !== 'Total')
+          const province = provinces[rows[0]?.dataIndex ?? 0]
+          const outlets = `${province.outlets.toLocaleString()} outlet${province.outlets === 1 ? '' : 's'}`
+          return [
+            `<b>${label(province)}</b>`,
+            `<span style="color:${muted}">${outlets} · ${province.total.toLocaleString()} cases</span>`,
+            ...rows.map(
+              (item) =>
+                `${item.marker}${item.seriesName}<span style="float:right;margin-left:16px;font-weight:600">${item.value.toLocaleString()}</span>`
+            ),
+          ].join('<br/>')
+        },
       },
       grid: { left: 8, right: 64, top: 44, bottom: 8, containLabel: true },
       xAxis: {
@@ -101,13 +121,31 @@ export function ProvinceStockChart({ data }: { data: ProvinceStock }) {
       yAxis: {
         type: 'category',
         data: provinces.map(label),
+        // Outlet count badge in front of each province name
         axisLabel: {
           color: text,
           fontFamily: FONT,
           fontSize: 13,
           lineHeight: 20,
-          width: 220,
-          overflow: 'truncate',
+          formatter: (value: string, index: number) =>
+            `{outlets|${provinces[index].outlets.toLocaleString()} outlet${provinces[index].outlets === 1 ? '' : 's'}}  {name|${value}}`,
+          rich: {
+            outlets: {
+              color: '#ffffff',
+              backgroundColor: '#5027F5',
+              borderRadius: 4,
+              padding: [3, 6],
+              fontFamily: FONT,
+              fontSize: 11,
+              fontWeight: 600,
+            },
+            name: {
+              color: text,
+              fontFamily: FONT,
+              fontSize: 13,
+              lineHeight: 20,
+            },
+          },
         },
         axisLine: { lineStyle: { color: line } },
         axisTick: { show: false },
@@ -119,6 +157,22 @@ export function ProvinceStockChart({ data }: { data: ProvinceStock }) {
           stack: 'total',
           barMaxWidth: 22,
           emphasis: { focus: 'series' },
+          // The product's cases written inside its coloured segment
+          label: {
+            show: true,
+            position: 'inside',
+            color: '#ffffff',
+            fontFamily: FONT,
+            fontSize: 11,
+            fontWeight: 600,
+            formatter: ({ value }: { value: number }) =>
+              value > 0 ? value.toLocaleString() : '',
+          },
+          // Hide a number only when it does not fit inside its segment
+          labelLayout: (params: {
+            rect: { width: number }
+            labelRect: { width: number }
+          }) => ({ hide: params.labelRect.width + 4 > params.rect.width }),
           data: provinces.map((p) => p.cases[index]),
         })),
         // Invisible series that prints the province total at the end of each bar

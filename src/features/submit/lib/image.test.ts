@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compressImage } from './image'
+import { compressImage, compressImageQueued } from './image'
 
 /** A photo-like image: random noise, so it cannot be stored compactly */
 async function makeImage(
@@ -37,22 +37,22 @@ const dimensions = async (file: File) => {
 }
 
 describe('compressImage', () => {
-  it('shrinks a large photo to at most 1600px as a smaller JPEG', async () => {
+  it('shrinks a large photo to at most 1280px as a smaller JPEG', async () => {
     const original = await makeImage(4000, 3000, 'image/png')
     const result = await compressImage(original)
     expect(result.type).toBe('image/jpeg')
     expect(result.name).toBe('photo.jpg')
     expect(result.size).toBeLessThan(original.size)
-    expect(await dimensions(result)).toEqual({ width: 1600, height: 1200 })
+    expect(await dimensions(result)).toEqual({ width: 1280, height: 960 })
   })
 
   it('keeps portrait orientation', async () => {
     const result = await compressImage(await makeImage(1500, 3000, 'image/png'))
-    expect(await dimensions(result)).toEqual({ width: 800, height: 1600 })
+    expect(await dimensions(result)).toEqual({ width: 640, height: 1280 })
   })
 
   it('returns the original when it cannot be made smaller', async () => {
-    // Already a tiny, heavily compressed JPEG: re-encoding at 0.8 would be larger
+    // Already a tiny, heavily compressed JPEG: re-encoding at 0.75 would be larger
     const tiny = await makeImage(20, 20, 'image/jpeg', 0.05)
     expect(await compressImage(tiny)).toBe(tiny)
   })
@@ -62,5 +62,18 @@ describe('compressImage', () => {
       type: 'image/jpeg',
     })
     expect(await compressImage(broken)).toBe(broken)
+  })
+})
+
+describe('compressImageQueued', () => {
+  it('shrinks every photo when many are added at once', async () => {
+    const files = await Promise.all(
+      Array.from({ length: 5 }, () => makeImage(2400, 1800, 'image/png'))
+    )
+    const results = await Promise.all(files.map(compressImageQueued))
+    expect(results.every((file) => file.type === 'image/jpeg')).toBe(true)
+    expect(await Promise.all(results.map((file) => dimensions(file)))).toEqual(
+      Array(5).fill({ width: 1280, height: 960 })
+    )
   })
 })

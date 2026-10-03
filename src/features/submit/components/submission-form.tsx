@@ -114,7 +114,7 @@ const formSchema = z
         code: 'custom',
         path: ['files'],
         message:
-          'សូមថតរូប ឬភ្ជាប់ឯកសារយ៉ាងហោចណាស់ ១ · Take a site photo or attach at least one file',
+          'សូមជ្រើសរើសរូបភាព ឬឯកសារយ៉ាងហោចណាស់ ១ · Choose at least one photo or file',
       })
     else if (total > MAX_FILES)
       ctx.addIssue({

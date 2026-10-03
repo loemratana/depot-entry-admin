@@ -62,6 +62,8 @@ export type ProvinceStock = {
     nameEn: string
     cases: number[]
     total: number
+    /** Outlets added in the period in this province */
+    outlets: number
   }[]
 }
 

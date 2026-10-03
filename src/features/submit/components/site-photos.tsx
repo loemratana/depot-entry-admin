@@ -21,7 +21,7 @@ import {
   mergeFiles,
 } from '../lib/files'
 import { GPS_ERROR_MESSAGES, GpsError, readGps } from '../lib/geolocation'
-import { compressImage } from '../lib/image'
+import { compressImageQueued } from '../lib/image'
 import { type SitePhoto, isSitePhotoReady } from '../lib/site-photo'
 
 export type { SitePhoto }
@@ -97,7 +97,7 @@ export function SitePhotos({
 
   // Shrinks one photo; drops it if it is still too large afterwards
   const prepare = async (photo: SitePhoto) => {
-    const file = await compressImage(photo.file)
+    const file = await compressImageQueued(photo.file)
     if (file.size > MAX_FILE_SIZE_BYTES) {
       onUpdate((photos) => photos.filter((p) => p.photoId !== photo.photoId))
       setProblems((prev) => [
@@ -171,8 +171,8 @@ export function SitePhotos({
   return (
     <div className='grid min-w-0 gap-3'>
       <p className='text-sm text-muted-foreground'>
-        ទីតាំងត្រូវបានប្រើដើម្បីកត់ត្រាកន្លែងដែលថតរូបនេះ · Location is used to
-        record where this site photo was taken.
+        ជ្រើសរើសរូបភាពដែលមានស្រាប់ពីទូរស័ព្ទ · Choose existing photos from your
+        phone. Location is used to record where the photos were added.
       </p>
 
       <div
@@ -180,7 +180,7 @@ export function SitePhotos({
         tabIndex={locked ? -1 : 0}
         aria-disabled={locked}
         aria-invalid={invalid}
-        aria-label='Take a photo or choose files'
+        aria-label='Choose photos or files'
         onClick={() => !locked && openPicker()}
         onKeyDown={(e) => {
           if (!locked && (e.key === 'Enter' || e.key === ' ')) {
@@ -206,9 +206,9 @@ export function SitePhotos({
         )}
       >
         <ImagePlus className='mb-1 size-6 text-muted-foreground' />
-        <span className='text-sm font-medium'>ថតរូប ឬជ្រើសរើសឯកសារ</span>
+        <span className='text-sm font-medium'>ជ្រើសរើសរូបភាព ឬឯកសារ</span>
         <span className='text-sm text-muted-foreground'>
-          Take a photo or choose files
+          Choose photos or files
         </span>
         <span className='text-xs text-muted-foreground'>
           JPG, PNG, WebP, PDF · ≤ {MAX_FILE_SIZE_MB} MB · max {MAX_FILES}

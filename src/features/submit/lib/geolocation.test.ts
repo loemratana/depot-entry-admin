@@ -41,7 +41,7 @@ const codeOf = async (promise: Promise<unknown>) => {
 }
 
 describe('readGps', () => {
-  it('returns the reported position with high-accuracy, no-cache options', async () => {
+  it('returns the reported position with high-accuracy, short-wait options', async () => {
     const geolocation = fakeGeolocation(fix())
     const reading = await readGps({ geolocation, secure: true })
     expect(reading).toEqual({
@@ -52,10 +52,10 @@ describe('readGps', () => {
     })
     expect(geolocation.getCurrentPosition.mock.calls[0][2]).toEqual({
       enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 0,
+      timeout: 8000,
+      maximumAge: 30_000,
     })
-    expect(GPS_OPTIONS.maximumAge).toBe(0)
+    expect(GPS_OPTIONS.timeout).toBe(8000)
   })
 
   it('maps permission denied, unavailable and timeout', async () => {
@@ -70,6 +70,24 @@ describe('readGps', () => {
         )
       ).toBe(expected)
     }
+  })
+
+  it('fails at once, without asking the device, when location is blocked for the site', async () => {
+    const geolocation = fakeGeolocation(fix())
+    const blocked = { query: vi.fn().mockResolvedValue({ state: 'denied' }) }
+    expect(
+      await codeOf(
+        readGps({ geolocation, secure: true, permissions: blocked as never })
+      )
+    ).toBe('denied')
+    expect(geolocation.getCurrentPosition).not.toHaveBeenCalled()
+
+    // Allowed, or the browser cannot tell: the device is asked as usual
+    const prompt = { query: vi.fn().mockResolvedValue({ state: 'prompt' }) }
+    await readGps({ geolocation, secure: true, permissions: prompt as never })
+    const broken = { query: vi.fn().mockRejectedValue(new Error('nope')) }
+    await readGps({ geolocation, secure: true, permissions: broken as never })
+    expect(geolocation.getCurrentPosition).toHaveBeenCalledTimes(2)
   })
 
   it('reports an unsupported browser and a non-https page without asking', async () => {
