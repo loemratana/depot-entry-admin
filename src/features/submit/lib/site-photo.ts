@@ -18,4 +18,3 @@ export type SitePhoto = {
  */
 export const isSitePhotoReady = (photo: SitePhoto) =>
   photo.status !== 'locating' && !photo.preparing
-
