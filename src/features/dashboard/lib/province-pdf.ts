@@ -121,7 +121,16 @@ export async function exportProvinceStockPdf({
   const { jsPDF } = await import('jspdf')
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
   // Compressed PNG keeps text and bars crisp at a small file size
-  pdf.addImage(page.toDataURL('image/png'), 'PNG', 0, 0, 297, 210, undefined, 'FAST')
+  pdf.addImage(
+    page.toDataURL('image/png'),
+    'PNG',
+    0,
+    0,
+    297,
+    210,
+    undefined,
+    'FAST'
+  )
   const date = new Date().toISOString().slice(0, 10)
   pdf.save(`stock-by-province-${date}.pdf`)
 }
