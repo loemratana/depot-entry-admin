@@ -268,7 +268,7 @@ export function SitePhotos({
                 )}
 
                 {failed && !photo.preparing && (
-                  // Still accepted; sent without GPS unless a retry succeeds
+                  // No location yet: Submit asks for it again and will not send without it
                   <div className='absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/60 px-1.5 py-1'>
                     <span
                       className='flex items-center gap-1 text-[10px] leading-none text-white'
@@ -326,8 +326,8 @@ export function SitePhotos({
               <span>
                 {message}
                 <span className='block text-xs'>
-                  រូបថតនឹងផ្ញើដោយគ្មានទីតាំង · The photo will be sent without a
-                  location. Allow location and tap retry to add it.
+                  ត្រូវការទីតាំង ដើម្បីបញ្ជូន · Location is needed to submit.
+                  Allow location, then tap retry or press Submit.
                 </span>
               </span>
             </li>

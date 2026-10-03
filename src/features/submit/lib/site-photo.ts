@@ -13,8 +13,8 @@ export type SitePhoto = {
 }
 
 /**
- * Ready to send: shrunk, and the location attempt is over. Location is optional:
- * if the user refuses it (or it is unavailable) the photo is sent without GPS.
+ * Ready for Submit: shrunk, and the first location attempt is over. A photo still
+ * without GPS gets the current location on Submit; the form is not sent without it.
  */
 export const isSitePhotoReady = (photo: SitePhoto) =>
   photo.status !== 'locating' && !photo.preparing
