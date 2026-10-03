@@ -32,6 +32,8 @@ export function ProvinceStock() {
   const grandTotal =
     query.data?.provinces.reduce((sum, p) => sum + p.total, 0) ?? 0
   const withStock = query.data?.provinces.filter((p) => p.total > 0).length ?? 0
+  const totalOutlets =
+    query.data?.provinces.reduce((sum, p) => sum + p.outlets, 0) ?? 0
 
   return (
     <>
@@ -118,6 +120,10 @@ export function ProvinceStock() {
               )}
             >
               <p className='text-sm text-muted-foreground'>
+                <span className='font-semibold text-foreground tabular-nums'>
+                  {totalOutlets.toLocaleString()}
+                </span>{' '}
+                outlet{totalOutlets === 1 ? '' : 's'} ·{' '}
                 {grandTotal === 0
                   ? 'មិនមានស្តុកក្នុងរយៈពេលនេះទេ · No stock reported in this period.'
                   : `${withStock} of ${query.data.provinces.length} provinces with stock · `}
@@ -131,6 +137,12 @@ export function ProvinceStock() {
                 )}
               </p>
               <ProvinceStockChart data={query.data} />
+              <p className='text-xs text-muted-foreground'>
+                ចំនួននីមួយៗជាចំនួនពិត · Every number is the real count. Very
+                small segments are drawn a little wider so their number fits, so
+                segment widths are not exactly to scale; totals at the end of
+                each bar are exact.
+              </p>
             </div>
           )}
         </section>

@@ -42,6 +42,11 @@ const FONT = "Inter, 'Noto Sans Khmer', 'Khmer OS Battambang', sans-serif"
 /**
  * Stacked horizontal bars: one bar per province (largest at the top), one
  * segment per product, the province total at the end of each bar.
+ *
+ * Every segment of 10 cases or more shows its number inside: segments too
+ * narrow for their number are widened just enough to hold it (9px). Numbers,
+ * tooltips and totals always show the real cases; because widths are then not
+ * strictly to scale, the x-axis scale is not shown.
  */
 export function ProvinceStockChart({ data }: { data: ProvinceStock }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -96,7 +101,7 @@ export function ProvinceStockChart({ data }: { data: ProvinceStock }) {
             dataIndex: number
             marker: string
             seriesName: string
-            value: number
+            data: { real?: number } | number
           }[]
         ) => {
           const rows = items.filter((item) => item.seriesName !== 'Total')
@@ -107,16 +112,21 @@ export function ProvinceStockChart({ data }: { data: ProvinceStock }) {
             `<span style="color:${muted}">${outlets} · ${province.total.toLocaleString()} cases</span>`,
             ...rows.map(
               (item) =>
-                `${item.marker}${item.seriesName}<span style="float:right;margin-left:16px;font-weight:600">${item.value.toLocaleString()}</span>`
+                `${item.marker}${item.seriesName}<span style="float:right;margin-left:16px;font-weight:600">${(typeof item.data === 'object' ? (item.data.real ?? 0) : item.data).toLocaleString()}</span>`
             ),
           ].join('<br/>')
         },
       },
       grid: { left: 8, right: 64, top: 44, bottom: 8, containLabel: true },
+      // Values are in screen pixels (see relayout), so no scale is shown
       xAxis: {
         type: 'value',
-        axisLabel: { color: muted },
-        splitLine: { lineStyle: { color: line } },
+        min: 0,
+        max: 1000,
+        axisLabel: { show: false },
+        axisTick: { show: false },
+        axisLine: { show: false },
+        splitLine: { show: false },
       },
       yAxis: {
         type: 'category',
@@ -151,7 +161,7 @@ export function ProvinceStockChart({ data }: { data: ProvinceStock }) {
         axisTick: { show: false },
       },
       series: [
-        ...data.products.map((product, index) => ({
+        ...data.products.map((product) => ({
           name: product.shortName,
           type: 'bar',
           stack: 'total',
@@ -166,12 +176,13 @@ export function ProvinceStockChart({ data }: { data: ProvinceStock }) {
             fontWeight: 600,
             align: 'center',
             verticalAlign: 'middle',
-            // Shown and sized per segment by relayoutLabels()
+            // Shown and sized per segment by relayout()
             show: false,
-            // Same text as measured in labelFor(): 1,380 not 1380
-            formatter: ({ value }: { value: number }) => value.toLocaleString(),
+            // The real cases (the bar value is its on-screen width)
+            formatter: ({ data }: { data: { real?: number } }) =>
+              (data?.real ?? 0).toLocaleString(),
           },
-          data: provinces.map((p) => p.cases[index]),
+          data: provinces.map(() => 0),
         })),
         // Invisible series that prints the province total at the end of each bar
         {
@@ -193,45 +204,75 @@ export function ProvinceStockChart({ data }: { data: ProvinceStock }) {
       ],
     })
 
-    // A segment's pixel width is only known once the chart has laid out its
-    // axis, so measure it, then redraw the labels (and again on every resize)
-    let pixelsPerCase = 0
     const measure = document.createElement('canvas').getContext('2d')
-    // Largest font that fits the segment with ~3px each side; bars keep their true length
     const LABEL_SIZES = [12, 10, 9]
-    const SIDE_PADDING = 3
-    const labelFor = (value: number) => {
-      if (value <= 0 || !pixelsPerCase || !measure) return { show: false }
-      const width = value * pixelsPerCase
-      const text = value.toLocaleString()
-      for (const fontSize of LABEL_SIZES) {
-        measure.font = `600 ${fontSize}px ${FONT}`
-        if (measure.measureText(text).width + SIDE_PADDING * 2 <= width)
-          return { show: true, fontSize }
-      }
-      // Does not fit even at 9px: no number (the tooltip still has it)
-      return { show: false }
+    const SIDE_PADDING = 2
+    // Values from 10 cases up always get room for their number at 9px
+    const MIN_LABELLED = 10
+    const textWidth = (value: number, fontSize: number) => {
+      if (!measure) return 0
+      measure.font = `600 ${fontSize}px ${FONT}`
+      return measure.measureText(value.toLocaleString()).width
     }
-    const relayoutLabels = () => {
-      const zero = chart.convertToPixel({ xAxisIndex: 0 }, 0)
-      const one = chart.convertToPixel({ xAxisIndex: 0 }, 1)
-      const next = Math.abs(one - zero)
-      if (next === pixelsPerCase) return
-      pixelsPerCase = next
+    const needed = (value: number) =>
+      value >= MIN_LABELLED ? textWidth(value, 9) + SIDE_PADDING * 2 : 0
+    // On-screen width of a segment for a given pixels-per-case scale
+    const segmentWidth = (value: number, scale: number) =>
+      value > 0 ? Math.max(value * scale, needed(value)) : 0
+    const rowWidth = (p: ProvinceStock['provinces'][number], scale: number) =>
+      p.cases.reduce((sum, value) => sum + segmentWidth(value, scale), 0)
+
+    let axisMax = 1000
+    let plotWidth = 0
+    const relayout = () => {
+      // Width of the plotting area (between the labels and the totals)
+      const width =
+        chart.convertToPixel({ xAxisIndex: 0 }, axisMax) -
+        chart.convertToPixel({ xAxisIndex: 0 }, 0)
+      if (!width || Math.abs(width - plotWidth) < 0.5) return
+      plotWidth = width
+
+      // Largest scale at which the widest row (with its widened segments) still fits
+      let low = 0
+      let high = Math.max(
+        ...provinces.map((p) => (p.total ? width / p.total : 0)),
+        0
+      )
+      for (let i = 0; i < 40; i++) {
+        const mid = (low + high) / 2
+        if (Math.max(0, ...provinces.map((p) => rowWidth(p, mid))) <= width)
+          low = mid
+        else high = mid
+      }
+      const scale = low
+
+      axisMax = width
       chart.setOption({
+        xAxis: { max: width },
         series: data.products.map((_, index) => ({
-          data: provinces.map((p) => ({
-            value: p.cases[index],
-            label: labelFor(p.cases[index]),
-          })),
+          data: provinces.map((p) => {
+            const real = p.cases[index]
+            const shown = segmentWidth(real, scale)
+            const fontSize = LABEL_SIZES.find(
+              (size) =>
+                real > 0 &&
+                textWidth(real, size) + SIDE_PADDING * 2 <= shown + 0.01
+            )
+            return {
+              value: shown,
+              real,
+              label: fontSize ? { show: true, fontSize } : { show: false },
+            }
+          }),
         })),
       })
     }
-    relayoutLabels()
+
+    relayout()
 
     const resize = new ResizeObserver(() => {
       chart.resize()
-      relayoutLabels()
+      relayout()
     })
     resize.observe(ref.current)
     return () => {
