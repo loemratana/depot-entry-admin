@@ -10,6 +10,10 @@ export type SitePhoto = {
   preparing?: boolean
   gps?: GpsReading
   error?: GpsErrorCode
+  /** Uploading in the background (Submit waits for it) */
+  uploading?: boolean
+  /** Set once uploaded in the background; Submit then sends only this id */
+  uploadId?: string
 }
 
 /**

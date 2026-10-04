@@ -51,7 +51,8 @@ const escapeHtml = (text: string) =>
  * Markers are plain HTML (divIcon), so Leaflet's default PNG marker, which
  * Vite does not resolve, is never used. Each marker is a small card with the
  * site photo and the outlet name; numbered when the capture sequence is shown.
- * The photo loads lazily; if it cannot load, a grey placeholder stays.
+ * The card shows the photo's small thumbnail (a few KB), never the full photo;
+ * until it exists, or if it cannot load, a grey placeholder stays.
  */
 const iconCache = new Map<string, L.DivIcon>()
 function markerIcon(
@@ -59,16 +60,18 @@ function markerIcon(
   label: number | undefined,
   selected: boolean
 ) {
-  const key = `${point.id}|${point.photoUrl}|${point.clientName}|${label ?? ''}|${selected}`
+  const key = `${point.id}|${point.thumbnailUrl ?? ''}|${point.clientName}|${label ?? ''}|${selected}`
   let icon = iconCache.get(key)
   if (!icon) {
     const name = escapeHtml(point.clientName)
-    const photo = escapeHtml(point.photoUrl)
+    const thumbnail = point.thumbnailUrl
+      ? `<img src="${escapeHtml(point.thumbnailUrl)}" alt="" decoding="async" onerror="this.remove()">`
+      : ''
     icon = L.divIcon({
       className: '',
       html:
         `<div class="outlet-card${selected ? ' outlet-card--selected' : ''}">` +
-        `<div class="outlet-card__photo"><img src="${photo}" alt="" loading="lazy" decoding="async" onerror="this.remove()"></div>` +
+        `<div class="outlet-card__photo">${thumbnail}</div>` +
         `<div class="outlet-card__name" title="${name}">${name}</div>` +
         (label ? `<span class="outlet-card__number">${label}</span>` : '') +
         `</div>`,

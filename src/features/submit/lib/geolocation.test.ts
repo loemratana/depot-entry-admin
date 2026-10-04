@@ -5,6 +5,7 @@ import {
   isLowAccuracy,
   isValidReading,
   readGps,
+  startGpsWarmup,
 } from './geolocation'
 
 const fix = (
@@ -144,5 +145,59 @@ describe('reading checks', () => {
     expect(isValidReading({ ...reading, latitude: -90.1 })).toBe(false)
     expect(isValidReading({ ...reading, longitude: 180.1 })).toBe(false)
     expect(isValidReading({ ...reading, capturedAt: 'nope' })).toBe(false)
+  })
+})
+
+describe('startGpsWarmup', () => {
+  /** A device that reports through watchPosition; getCurrentPosition would wait */
+  const watchingDevice = () => {
+    let report: PositionCallback | undefined
+    const device = {
+      ...fakeGeolocation({ code: 3 }),
+      watchPosition: vi.fn((success: PositionCallback) => {
+        report = success
+        return 7
+      }),
+      clearWatch: vi.fn(),
+    }
+    return { device, report: (p: GeolocationPosition) => report?.(p) }
+  }
+
+  it('a photo gets the kept position at once, without asking the device', async () => {
+    const { device, report } = watchingDevice()
+    const stop = startGpsWarmup(device)
+    report(fix({ latitude: 13.36 }, Date.now()))
+    const reading = await readGps({ geolocation: device, secure: true })
+    expect(reading.latitude).toBe(13.36)
+    expect(device.getCurrentPosition).not.toHaveBeenCalled()
+    stop()
+  })
+
+  it('after stopping, the device is asked again', async () => {
+    const { device, report } = watchingDevice()
+    const stop = startGpsWarmup(device)
+    report(fix({}, Date.now()))
+    stop()
+    expect(device.clearWatch).toHaveBeenCalledWith(7)
+    expect(await codeOf(readGps({ geolocation: device, secure: true }))).toBe(
+      'timeout'
+    )
+  })
+
+  it('a kept position never skips the blocked check', async () => {
+    const { device, report } = watchingDevice()
+    const stop = startGpsWarmup(device)
+    report(fix({}, Date.now()))
+    const blocked = { query: async () => ({ state: 'denied' }) }
+    expect(
+      await codeOf(
+        readGps({
+          geolocation: device,
+          secure: true,
+          permissions: blocked as never,
+        })
+      )
+    ).toBe('denied')
+    stop()
   })
 })

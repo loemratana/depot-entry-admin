@@ -51,9 +51,12 @@ import {
   createIdempotencyKey,
   normalizePhone,
 } from '../lib/files'
-import { GPS_ERROR_MESSAGES, GpsError, readGps } from '../lib/geolocation'
+import { type GpsReading, startGpsWarmup } from '../lib/geolocation'
+import { useLocationPermission } from '../lib/location-permission'
+import { forgetPhotoUpload, waitForPhotoUpload } from '../lib/photo-upload'
 import { type SitePhoto, isSitePhotoReady } from '../lib/site-photo'
 import { pickedLocationId } from '../lib/typed-location'
+import { LocationCard } from './location-card'
 import { type Option, OptionCombobox } from './option-combobox'
 import { SitePhotos } from './site-photos'
 
@@ -266,6 +269,12 @@ type SubmissionFormProps = {
 
 export type StockStep = { brand: Brand | null }
 
+/** Photos still without a location get this reading (taken here, now) */
+const withGps = (photos: SitePhoto[], gps: GpsReading): SitePhoto[] =>
+  photos.map((photo) =>
+    photo.gps ? photo : { ...photo, status: 'ready', gps, error: undefined }
+  )
+
 export function SubmissionForm({
   onSuccess,
   onStockStepChange,
@@ -306,6 +315,29 @@ export function SubmissionForm({
     })
     if (next.length) form.clearErrors('files')
   }
+
+  // Location status at the top of the form; asks, and guides when blocked
+  const location = useLocationPermission()
+  const { access: locationAccess, request: requestLocation } = location
+  const askForLocation = async () => {
+    const gps = await requestLocation()
+    if (!gps) return
+    updateSitePhotos((photos) => withGps(photos, gps))
+    form.clearErrors('sitePhotos')
+  }
+  // Keeps a fresh position while the form is open, so photos get theirs at once
+  useEffect(() => {
+    if (locationAccess === 'granted') return startGpsWarmup()
+  }, [locationAccess])
+  // Allowed in the settings afterwards: photos marked "No GPS" get it now
+  useEffect(() => {
+    if (locationAccess !== 'granted') return
+    if (!form.getValues('sitePhotos').some((p) => p.status === 'failed')) return
+    void requestLocation().then((gps) => {
+      if (gps)
+        form.setValue('sitePhotos', withGps(form.getValues('sitePhotos'), gps))
+    })
+  }, [locationAccess, requestLocation, form])
 
   const provinces = useProvinces()
   const capital = provinces.data?.find(isCapital)
@@ -352,8 +384,9 @@ export function SubmissionForm({
       submitClient(
         {
           ...values,
-          sitePhotos: values.sitePhotos.flatMap(({ photoId, file, gps }) =>
-            gps ? [{ photoId, file, gps }] : []
+          sitePhotos: values.sitePhotos.flatMap(
+            ({ photoId, file, gps, uploadId }) =>
+              gps ? [{ photoId, file, gps, uploadId }] : []
           ),
           // Every catalog product is sent; blank boxes count as 0
           stockItems: (catalog.data?.brands ?? []).flatMap((brand) =>
@@ -386,7 +419,24 @@ export function SubmissionForm({
       const products = (catalog.data?.brands ?? []).flatMap((b) =>
         b.products.map((p) => ({ ...p, measures: b.measures }))
       )
-      for (const { field, message } of getFieldErrors(error)) {
+      const fieldErrors = getFieldErrors(error)
+      // An uploaded photo that expired is sent with the form on the next Submit
+      const expired = new Set(
+        fieldErrors.flatMap(
+          ({ field }) => /^stagedPhotos\.(.+)$/.exec(field ?? '')?.[1] ?? []
+        )
+      )
+      if (expired.size) {
+        expired.forEach(forgetPhotoUpload)
+        updateSitePhotos((photos) =>
+          photos.map((photo) =>
+            expired.has(photo.photoId)
+              ? { ...photo, uploadId: undefined }
+              : photo
+          )
+        )
+      }
+      for (const { field, message } of fieldErrors) {
         const stock = /^stockItems\.(\d+)\.(\w+)$/.exec(field ?? '')
         if (stock) {
           const product = products[Number(stock[1])]
@@ -410,7 +460,7 @@ export function SubmissionForm({
         }
         const name = field?.startsWith('files')
           ? 'files'
-          : field?.startsWith('sitePhoto')
+          : field?.startsWith('sitePhoto') || field?.startsWith('stagedPhotos')
             ? 'sitePhotos'
             : field === 'districtName'
               ? 'districtId'
@@ -434,35 +484,64 @@ export function SubmissionForm({
     )
     if (missing.size) {
       setLocating(true)
-      try {
-        const gps = await readGps()
-        updateSitePhotos((photos) =>
-          photos.map((photo) =>
-            missing.has(photo.photoId)
-              ? { ...photo, status: 'ready', gps, error: undefined }
-              : photo
-          )
-        )
-        values = {
-          ...values,
-          sitePhotos: values.sitePhotos.map((photo) =>
-            missing.has(photo.photoId) ? { ...photo, gps } : photo
-          ),
-        }
-      } catch (error) {
-        const code = error instanceof GpsError ? error.code : 'unavailable'
+      // The location card shows why it failed and how to fix it
+      const gps = await requestLocation().finally(() => setLocating(false))
+      if (!gps) {
         form.setError('sitePhotos', {
-          message: `ត្រូវការទីតាំង ដើម្បីបញ្ជូន · Location is required to submit. ${GPS_ERROR_MESSAGES[code]}`,
+          message:
+            'ត្រូវការទីតាំង ដើម្បីបញ្ជូន · Location is required to submit. See the location box at the top of the form.',
         })
+        window.scrollTo({ top: 0, behavior: 'smooth' })
         return
-      } finally {
-        setLocating(false)
+      }
+      updateSitePhotos((photos) =>
+        photos.map((photo) =>
+          missing.has(photo.photoId)
+            ? { ...photo, status: 'ready', gps, error: undefined }
+            : photo
+        )
+      )
+      values = {
+        ...values,
+        sitePhotos: values.sitePhotos.map((photo) =>
+          missing.has(photo.photoId) ? { ...photo, gps } : photo
+        ),
       }
     }
-    mutation.mutate(values)
+    // Photos still uploading in the background are waited for; any that did not
+    // upload are sent with the form
+    if (values.sitePhotos.some((photo) => !photo.uploadId)) {
+      setFinishingUploads(true)
+      const uploadIds = await Promise.all(
+        values.sitePhotos.map(
+          (photo) => photo.uploadId ?? waitForPhotoUpload(photo.photoId)
+        )
+      ).finally(() => setFinishingUploads(false))
+      values = {
+        ...values,
+        sitePhotos: values.sitePhotos.map((photo, index) => ({
+          ...photo,
+          uploadId: uploadIds[index],
+        })),
+      }
+    }
+    mutation.mutate(values, {
+      onSuccess: () =>
+        values.sitePhotos.forEach((p) => forgetPhotoUpload(p.photoId)),
+    })
   }
 
-  const isSubmitting = mutation.isPending || locating
+  const [finishingUploads, setFinishingUploads] = useState(false)
+  const isSubmitting = mutation.isPending || locating || finishingUploads
+
+  const locationCard = (
+    <LocationCard
+      access={location.access}
+      problem={location.problem}
+      requesting={location.requesting}
+      onRequest={() => void askForLocation()}
+    />
+  )
   const fieldErrors = mutation.isError ? getFieldErrors(mutation.error) : []
   const showGeneralError =
     mutation.isError &&
@@ -502,6 +581,9 @@ export function SubmissionForm({
         className='grid gap-5 *:min-w-0'
         noValidate
       >
+        {/* On the photo step it sits right above the upload box instead */}
+        {current.kind !== 'photos' && locationCard}
+
         {showGeneralError && (
           <Alert variant='destructive'>
             <AlertDescription>
@@ -736,6 +818,7 @@ export function SubmissionForm({
               render={({ field, fieldState }) => (
                 <FormItem>
                   <BilingualLabel kh='រូបភាព' en='Photos' />
+                  {locationCard}
                   {/* One upload box: photos (with GPS) and PDFs */}
                   <SitePhotos
                     value={field.value}
@@ -748,6 +831,7 @@ export function SubmissionForm({
                       if (next.length) form.clearErrors('files')
                     }}
                     disabled={isSubmitting}
+                    endpoint={endpoint}
                     invalid={
                       !!fieldState.error || !!form.formState.errors.files
                     }
@@ -799,9 +883,11 @@ export function SubmissionForm({
                 {isSubmitting ? <Loader2 className='animate-spin' /> : <Send />}
                 {locating
                   ? 'កំពុងយកទីតាំង · Getting location…'
-                  : isSubmitting
-                    ? `កំពុងបញ្ជូន... ${progress}%`
-                    : 'បញ្ជូន · Submit'}
+                  : finishingUploads
+                    ? 'កំពុងផ្ទុករូបភាព · Uploading photos…'
+                    : isSubmitting
+                      ? `កំពុងបញ្ជូន... ${progress}%`
+                      : 'បញ្ជូន · Submit'}
               </Button>
             )}
           </div>
