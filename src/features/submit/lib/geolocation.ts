@@ -89,6 +89,52 @@ export function isValidReading(reading: GpsReading) {
 
 type GeolocationLike = Pick<Geolocation, 'getCurrentPosition'>
 
+/** A position from the device as a reading, or undefined when it is not usable */
+function toReading(position: GeolocationPosition): GpsReading | undefined {
+  const time = new Date(position.timestamp)
+  if (Number.isNaN(time.getTime())) return undefined
+  const reading: GpsReading = {
+    latitude: position.coords.latitude,
+    longitude: position.coords.longitude,
+    accuracy: position.coords.accuracy,
+    capturedAt: time.toISOString(),
+  }
+  return isValidReading(reading) ? reading : undefined
+}
+
+/**
+ * While the form is open and location is allowed, the device keeps reporting
+ * its position, so a photo gets its location at once instead of waiting for a
+ * new fix. Kept per GPS source (tests use their own) and trusted for 2 minutes:
+ * with the watch running, no newer report means the phone has not moved.
+ */
+const WARM_FIX_MAX_AGE_MS = 120_000
+const warmFixes = new WeakMap<object, { reading: GpsReading; at: number }>()
+
+/** Starts keeping a fresh position; returns the function that stops it */
+export function startGpsWarmup(
+  geolocation: Pick<
+    Geolocation,
+    'watchPosition' | 'clearWatch'
+  > | null = typeof navigator === 'undefined' ? null : navigator.geolocation
+) {
+  if (!geolocation) return () => {}
+  const source = geolocation
+  const id = source.watchPosition(
+    (position) => {
+      const reading = toReading(position)
+      if (reading) warmFixes.set(source, { reading, at: Date.now() })
+    },
+    // A failed report just means readGps asks the device itself
+    () => {},
+    { enableHighAccuracy: true, maximumAge: GPS_OPTIONS.maximumAge }
+  )
+  return () => {
+    source.clearWatch(id)
+    warmFixes.delete(source)
+  }
+}
+
 const ERROR_CODES: Record<number, GpsErrorCode> = {
   1: 'denied',
   2: 'unavailable',
@@ -118,18 +164,14 @@ export async function readGps({
   if (!geolocation) throw new GpsError('unsupported')
   if (await isLocationBlocked(permissions)) throw new GpsError('denied')
 
+  const warm = warmFixes.get(geolocation)
+  if (warm && Date.now() - warm.at <= WARM_FIX_MAX_AGE_MS) return warm.reading
+
   return new Promise<GpsReading>((resolve, reject) => {
     geolocation.getCurrentPosition(
       (position) => {
-        const time = new Date(position.timestamp)
-        if (Number.isNaN(time.getTime())) return reject(new GpsError('invalid'))
-        const reading: GpsReading = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          capturedAt: time.toISOString(),
-        }
-        if (isValidReading(reading)) resolve(reading)
+        const reading = toReading(position)
+        if (reading) resolve(reading)
         else reject(new GpsError('invalid'))
       },
       (error) => reject(new GpsError(ERROR_CODES[error.code] ?? 'unavailable')),

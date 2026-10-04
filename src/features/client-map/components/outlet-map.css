@@ -12,7 +12,6 @@
   border: 2px solid #fff;
   border-radius: 6px;
   background: #fff;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
   cursor: pointer;
 }
 
@@ -76,11 +75,10 @@
   font-weight: 700;
 }
 
+/* Selected: purple border and outline ring, no drop shadow */
 .outlet-card--selected {
   border-color: #5027f5;
-  box-shadow:
-    0 0 0 3px rgb(80 39 245 / 0.35),
-    0 2px 8px rgb(0 0 0 / 0.3);
+  box-shadow: 0 0 0 3px rgb(80 39 245 / 0.35);
 }
 
 .outlet-card--selected::after {

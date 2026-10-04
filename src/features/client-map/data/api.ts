@@ -20,9 +20,13 @@ export type MapPoint = {
   accuracy: number | null
   capturedAt: string | null
   submittedAt: string
-  /** Short-lived presigned URL; loaded only when the marker's popup opens */
+  /** The full photo; loaded only when the marker's popup opens */
   photoUrl: string
   photoUrlExpiresAt: string
+  /** 160 px preview for the marker card; null until the server has made it */
+  thumbnailUrl: string | null
+  /** The thumbnail is still being made (asked for again shortly) */
+  thumbnailPending?: boolean
 }
 
 export type MapFilters = {
@@ -35,8 +39,11 @@ export type MapFilters = {
   submissionId?: string
 }
 
-// Photo URLs expire after 15 minutes; refresh well before that while the page is open
+// Links stay the same for 6 hours (so the browser caches the images) and are
+// valid for at least 6 more; refreshing also picks up new outlets
 const REFRESH_MS = 10 * 60 * 1000
+// While some thumbnails are still being made, ask again soon
+const PENDING_THUMBNAILS_REFRESH_MS = 5000
 
 export function useMapPoints(filters: MapFilters) {
   return useQuery({
@@ -49,6 +56,9 @@ export function useMapPoints(filters: MapFilters) {
       return { points: res.data.data ?? [], notice: res.data.message }
     },
     placeholderData: keepPreviousData,
-    refetchInterval: REFRESH_MS,
+    refetchInterval: (query) =>
+      query.state.data?.points.some((p) => p.thumbnailPending)
+        ? PENDING_THUMBNAILS_REFRESH_MS
+        : REFRESH_MS,
   })
 }

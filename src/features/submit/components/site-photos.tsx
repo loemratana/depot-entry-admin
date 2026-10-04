@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { WithTooltip } from '@/components/with-tooltip'
 import { formatFileSize } from '@/features/clients/lib/format'
+import { DEFAULT_SUBMIT_ENDPOINT } from '../data/api'
 import {
   type FileProblem,
   MAX_FILES,
@@ -22,6 +23,7 @@ import {
 } from '../lib/files'
 import { GPS_ERROR_MESSAGES, GpsError, readGps } from '../lib/geolocation'
 import { compressImageQueued } from '../lib/image'
+import { forgetPhotoUpload, uploadPhotoInBackground } from '../lib/photo-upload'
 import { type SitePhoto, isSitePhotoReady } from '../lib/site-photo'
 
 export type { SitePhoto }
@@ -38,18 +40,27 @@ type SitePhotosProps = {
   onDocumentsChange: (files: File[]) => void
   disabled?: boolean
   invalid?: boolean
+  /** Where the form is sent; photos are uploaded ahead to <endpoint>/photos */
+  endpoint?: string
 }
 
-function usePreviews(photos: SitePhoto[]) {
-  const previews = useMemo(
-    () => new Map(photos.map((p) => [p.file, URL.createObjectURL(p.file)])),
-    [photos]
+/**
+ * Thumbnail of a photo that has already been shrunk. Originals are never shown:
+ * a decoded camera photo takes about 48 MB, and showing several at once can
+ * run a phone out of memory. Each thumbnail keeps its own URL, so updates to
+ * other photos do not reload it.
+ */
+function PhotoPreview({ file }: { file: File }) {
+  const url = useMemo(() => URL.createObjectURL(file), [file])
+  useEffect(() => () => URL.revokeObjectURL(url), [url])
+  return (
+    <img
+      src={url}
+      alt='Site photo'
+      decoding='async'
+      className='size-full object-cover'
+    />
   )
-  useEffect(
-    () => () => previews.forEach((url) => URL.revokeObjectURL(url)),
-    [previews]
-  )
-  return previews
 }
 
 /**
@@ -65,6 +76,7 @@ export function SitePhotos({
   onDocumentsChange,
   disabled,
   invalid,
+  endpoint,
 }: SitePhotosProps) {
   // The box opens the file picker directly; on phones it also offers the camera
   const inputRef = useRef<HTMLInputElement>(null)
@@ -73,7 +85,6 @@ export function SitePhotos({
   const remaining = MAX_FILES - value.length - documents.length
   const locked = disabled || remaining <= 0
   const [problems, setProblems] = useState<FileProblem[]>([])
-  const previews = usePreviews(value)
 
   const patch = (photoIds: string[], changes: Partial<SitePhoto>) => {
     const ids = new Set(photoIds)
@@ -106,7 +117,14 @@ export function SitePhotos({
       ])
       return
     }
-    patch([photo.photoId], { file, preparing: false })
+    patch([photo.photoId], { file, preparing: false, uploading: true })
+    // Uploaded now, while the form is still being filled in
+    const uploadId = await uploadPhotoInBackground(
+      photo.photoId,
+      file,
+      endpoint ?? DEFAULT_SUBMIT_ENDPOINT
+    )
+    patch([photo.photoId], { uploading: false, uploadId })
   }
 
   const add = (picked: File[]) => {
@@ -156,6 +174,7 @@ export function SitePhotos({
   }
 
   const remove = (photoId: string) => {
+    forgetPhotoUpload(photoId)
     setProblems([])
     onUpdate((photos) => photos.filter((p) => p.photoId !== photoId))
   }
@@ -251,11 +270,7 @@ export function SitePhotos({
                 className='relative aspect-square overflow-hidden rounded-md border bg-muted'
                 data-state={ready ? 'ready' : failed ? 'failed' : 'loading'}
               >
-                <img
-                  src={previews.get(photo.file)}
-                  alt='Site photo'
-                  className='size-full object-cover'
-                />
+                {!photo.preparing && <PhotoPreview file={photo.file} />}
 
                 {busy && (
                   <div
@@ -292,7 +307,18 @@ export function SitePhotos({
                   </div>
                 )}
 
-                {ready && !failed && (
+                {ready && !failed && photo.uploading && (
+                  <span
+                    className='absolute start-1 bottom-1 flex size-5 items-center justify-center rounded-full bg-black/60 text-white'
+                    title='Uploading · កំពុងផ្ទុកឡើង'
+                    role='status'
+                    aria-label='Uploading'
+                  >
+                    <Loader2 className='size-3.5 animate-spin' />
+                  </span>
+                )}
+
+                {ready && !failed && !photo.uploading && (
                   <span
                     className='absolute start-1 bottom-1 flex size-5 items-center justify-center rounded-full bg-emerald-600 text-white'
                     title='Ready'

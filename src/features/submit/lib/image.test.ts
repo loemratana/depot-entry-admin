@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compressImage, compressImageQueued } from './image'
+import { compressImage, compressImageQueued, shrinkConcurrency } from './image'
 
 /** A photo-like image: random noise, so it cannot be stored compactly */
 async function makeImage(
@@ -75,5 +75,17 @@ describe('compressImageQueued', () => {
     expect(await Promise.all(results.map((file) => dimensions(file)))).toEqual(
       Array(5).fill({ width: 1280, height: 960 })
     )
+  })
+})
+
+describe('shrinkConcurrency', () => {
+  it('does fewer at once on phones with little memory', () => {
+    expect(shrinkConcurrency(1)).toBe(1)
+    expect(shrinkConcurrency(2)).toBe(1)
+    expect(shrinkConcurrency(3)).toBe(2)
+    expect(shrinkConcurrency(4)).toBe(3)
+    expect(shrinkConcurrency(8)).toBe(3)
+    // Browsers that do not report memory
+    expect(shrinkConcurrency(undefined)).toBe(2)
   })
 })

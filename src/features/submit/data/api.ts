@@ -14,11 +14,13 @@ export type SubmitClientInput = {
   /** Optional; the public form no longer asks for it */
   saleGbName?: string
   files: File[]
-  /** Site photos, each with its own id and GPS reading */
+  /** Site photos, each with its own id and GPS reading. A photo already
+   * uploaded in the background is sent by its uploadId instead of its file. */
   sitePhotos?: {
     photoId: string
     file: File
     gps: GpsReading
+    uploadId?: string
   }[]
   /** The outlet's stock, one entry per product; blank boxes already converted to 0.
    * Only the quantities the product's brand counts are sent. */
@@ -42,12 +44,29 @@ export function getFieldErrors(error: unknown): FieldError[] {
     : []
 }
 
+export const DEFAULT_SUBMIT_ENDPOINT = '/public/submissions'
+
+/** Uploads one site photo before Submit; returns its uploadId */
+export async function stageSitePhoto(
+  file: File,
+  endpoint: string = DEFAULT_SUBMIT_ENDPOINT
+) {
+  const form = new FormData()
+  form.append('photo', file, file.name)
+  const res = await apiClient.post<ApiResponse<{ uploadId: string }>>(
+    `${endpoint}/photos`,
+    form,
+    { timeout: 2 * 60 * 1000 }
+  )
+  return res.data.data.uploadId
+}
+
 export async function submitClient(
   input: SubmitClientInput,
   {
     idempotencyKey,
     onProgress,
-    endpoint = '/public/submissions',
+    endpoint = DEFAULT_SUBMIT_ENDPOINT,
   }: {
     idempotencyKey: string
     onProgress?: (percent: number) => void
@@ -79,8 +98,16 @@ export async function submitClient(
         input.sitePhotos.map(({ photoId, gps }) => ({ photoId, ...gps }))
       )
     )
-    for (const { photoId, file } of input.sitePhotos)
-      form.append(`sitePhotos[${photoId}]`, file, file.name)
+    const staged = input.sitePhotos.filter((photo) => photo.uploadId)
+    if (staged.length)
+      form.append(
+        'stagedPhotos',
+        JSON.stringify(
+          staged.map(({ photoId, uploadId }) => ({ photoId, uploadId }))
+        )
+      )
+    for (const { photoId, file, uploadId } of input.sitePhotos)
+      if (!uploadId) form.append(`sitePhotos[${photoId}]`, file, file.name)
   }
 
   const res = await apiClient.post<ApiResponse<SubmitClientResult>>(
