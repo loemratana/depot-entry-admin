@@ -123,12 +123,19 @@ export function useExportSubmissions() {
 
 // ---------- Admin CRUD ----------
 
-/** Refreshes lists and details; typed Sale GB names may have added a new Sale GB */
+/**
+ * Refreshes lists and details; typed Sale GB names may have added a new Sale GB.
+ * An outlet's stock reports, dashboard numbers and map points change with it
+ * (renamed, moved or deleted), so those refresh too.
+ */
 function useRefreshClients() {
   const queryClient = useQueryClient()
   return () => {
     queryClient.invalidateQueries({ queryKey: clientKeys.all })
     queryClient.invalidateQueries({ queryKey: ['sales'] })
+    queryClient.invalidateQueries({ queryKey: ['stock'] })
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    queryClient.invalidateQueries({ queryKey: ['client-map'] })
   }
 }
 

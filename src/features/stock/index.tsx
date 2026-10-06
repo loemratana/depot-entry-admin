@@ -54,6 +54,7 @@ import {
 import { type LocationOption } from '@/features/clients/data/schema'
 import { formatSubmittedAt, locationName } from '@/features/clients/lib/format'
 import { BrandStockTables } from './components/brand-stock-tables'
+import { OutletStockDialog } from './components/outlet-stock-dialog'
 import { StockDetailSheet } from './components/stock-detail-sheet'
 import {
   type Measure,
@@ -130,6 +131,8 @@ const toOptions = (items: LocationOption[] | undefined) =>
 export function StockReports() {
   const can = useCan()
   const canDelete = can('stock.delete')
+  const canEdit = can('stock.update')
+  const [editing, setEditing] = useState(false)
   const [filters, setFilters] = useState<StockFilters>({})
   const [searchInput, setSearchInput] = useState('')
   const [pagination, setPagination] = useState<PaginationState>({
@@ -539,7 +542,17 @@ export function StockReports() {
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         onDelete={canDelete ? setToDelete : undefined}
+        onEdit={canEdit ? () => setEditing(true) : undefined}
       />
+
+      {editing && selected && (
+        <OutletStockDialog
+          open
+          onOpenChange={setEditing}
+          outlet={selected.outlet}
+          report={selected}
+        />
+      )}
 
       <ConfirmDialog
         open={!!toDelete}

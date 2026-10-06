@@ -126,12 +126,43 @@ export function useStockReport(id: string | null) {
   })
 }
 
+/** Admin: sets an outlet's stock (adds it again when it was deleted) */
+export function useSetOutletStock() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      outletId,
+      stockItems,
+    }: {
+      outletId: string
+      stockItems: ({ productId: string } & Partial<
+        Record<MeasureKey, number>
+      >)[]
+    }) =>
+      (
+        await apiClient.put<ApiResponse<StockReport>>(
+          `/admin/submissions/${encodeURIComponent(outletId)}/stock`,
+          { stockItems }
+        )
+      ).data.data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: stockKeys.all })
+      // Dashboard stock totals include it
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
 export function useDeleteStockReport() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: string) =>
       apiClient.delete(`/admin/stock/reports/${encodeURIComponent(id)}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: stockKeys.all }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: stockKeys.all })
+      // Dashboard stock totals include this report
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
     onError: (error) =>
       toast.error(getErrorMessage(error, 'Unable to delete the stock report.')),
   })
