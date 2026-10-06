@@ -14,6 +14,7 @@ export type Permission =
   | 'outlets.export'
   | 'map.view'
   | 'stock.view'
+  | 'stock.update'
   | 'stock.delete'
   | 'stock.export'
   | 'catalog.view'

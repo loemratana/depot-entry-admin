@@ -1,4 +1,4 @@
-import { Loader2, Trash2 } from 'lucide-react'
+import { Loader2, PackagePlus, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -18,6 +18,8 @@ type StockDetailSheetProps = {
   onOpenChange: (open: boolean) => void
   /** Shows a Delete button when given */
   onDelete?: (report: StockReport) => void
+  /** Shows Edit stock (or Add stock when there is no report) when given */
+  onEdit?: () => void
   /** The report is still being looked up (e.g. opened from an outlet) */
   isLoading?: boolean
   /** Shown when there is no report to show */
@@ -32,6 +34,7 @@ export function StockDetailSheet({
   open,
   onOpenChange,
   onDelete,
+  onEdit,
   isLoading,
   emptyText,
 }: StockDetailSheetProps) {
@@ -46,16 +49,23 @@ export function StockDetailSheet({
           <SheetDescription className='sr-only'>
             Stock quantities reported for an outlet
           </SheetDescription>
-          {data && onDelete && (
-            <div className='pt-1'>
-              <Button
-                size='sm'
-                variant='outline'
-                className='text-destructive hover:text-destructive'
-                onClick={() => onDelete(data)}
-              >
-                <Trash2 /> Delete
-              </Button>
+          {data && (onDelete || onEdit) && (
+            <div className='flex gap-2 pt-1'>
+              {onEdit && (
+                <Button size='sm' variant='outline' onClick={onEdit}>
+                  <Pencil /> Edit stock
+                </Button>
+              )}
+              {onDelete && (
+                <Button
+                  size='sm'
+                  variant='outline'
+                  className='text-destructive hover:text-destructive'
+                  onClick={() => onDelete(data)}
+                >
+                  <Trash2 /> Delete
+                </Button>
+              )}
             </div>
           )}
         </SheetHeader>
@@ -65,9 +75,16 @@ export function StockDetailSheet({
             <Loader2 className='mx-auto size-5 animate-spin text-muted-foreground' />
           )}
           {!isLoading && !data && emptyText && (
-            <p className='py-10 text-center text-sm text-muted-foreground'>
-              {emptyText}
-            </p>
+            <div className='flex flex-col items-center gap-3 py-10'>
+              <p className='text-center text-sm text-muted-foreground'>
+                {emptyText}
+              </p>
+              {onEdit && (
+                <Button size='sm' onClick={onEdit}>
+                  <PackagePlus /> Add stock
+                </Button>
+              )}
+            </div>
           )}
           {data && (
             <div className='flex flex-col gap-5'>
