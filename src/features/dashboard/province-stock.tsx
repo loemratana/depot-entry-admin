@@ -6,30 +6,68 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfigDrawer } from '@/components/config-drawer'
-import { DatePicker } from '@/components/date-picker'
+import { DateTimePicker } from '@/components/date-time-picker'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { fromIsoDate, toIsoDate } from '@/features/clients/lib/format'
+import { FilterCombobox } from '@/features/clients/components/filter-combobox'
+import {
+  useCommunes,
+  useDistricts,
+  useProvinces,
+} from '@/features/clients/data/queries'
+import { type LocationOption } from '@/features/clients/data/schema'
+import { formatFilterDate } from '@/features/clients/lib/format'
 import { ProvinceStockChart } from './components/province-stock-chart'
-import { useProvinceStock } from './data/api'
+import { type ProvinceStockFilters, useProvinceStock } from './data/api'
 
 type Period = { dateFrom?: string; dateTo?: string }
 
+const toOptions = (items: LocationOption[] | undefined) =>
+  items?.map((item) => ({
+    value: item.id,
+    label: item.nameEn || item.nameKh,
+    description: item.nameEn && item.nameKh ? item.nameKh : undefined,
+  }))
+
+// What each bar is, by how far the location filter goes
+const PLACE_WORDS = {
+  province: { kh: 'ខេត្ត', one: 'province', many: 'provinces' },
+  district: { kh: 'ស្រុក/ខណ្ឌ', one: 'district', many: 'districts' },
+  commune: { kh: 'ឃុំ/សង្កាត់', one: 'commune', many: 'communes' },
+} as const
+
 const periodLabel = ({ dateFrom, dateTo }: Period) =>
   dateFrom && dateTo
-    ? `${dateFrom} → ${dateTo}`
+    ? `${formatFilterDate(dateFrom)} → ${formatFilterDate(dateTo)}`
     : dateFrom
-      ? `From ${dateFrom}`
+      ? `From ${formatFilterDate(dateFrom)}`
       : dateTo
-        ? `Until ${dateTo}`
+        ? `Until ${formatFilterDate(dateTo)}`
         : 'All time'
 
-/** Dashboard › Stock by Province: stacked horizontal bars of cases per product */
+/**
+ * Dashboard › Stock by Province: stacked horizontal bars of cases per product.
+ * Choosing a province shows its districts, a district its communes.
+ */
 export function ProvinceStock() {
-  const [period, setPeriod] = useState<Period>({})
+  const [period, setPeriod] = useState<ProvinceStockFilters>({})
   const query = useProvinceStock(period)
+  const provincesList = useProvinces()
+  const districtsList = useDistricts(period.provinceId)
+  const communesList = useCommunes(period.districtId, period.provinceId)
+  const words = PLACE_WORDS[query.data?.level ?? 'province']
+  // "Phnom Penh · Chamkar Mon" for the chosen place, shown with the period
+  const place = [
+    provincesList.data?.find((p) => p.id === period.provinceId),
+    districtsList.data?.find((d) => d.id === period.districtId),
+    communesList.data?.find((c) => c.id === period.communeId),
+  ]
+    .filter(Boolean)
+    .map((item) => item!.nameEn || item!.nameKh)
+    .join(' · ')
+  const hasFilters = Object.values(period).some(Boolean)
   const grandTotal =
     query.data?.provinces.reduce((sum, p) => sum + p.total, 0) ?? 0
   const withStock = query.data?.provinces.filter((p) => p.total > 0).length ?? 0
@@ -45,8 +83,9 @@ export function ProvinceStock() {
       const { exportProvinceStockPdf } = await import('./lib/province-pdf')
       await exportProvinceStockPdf({
         data: query.data,
-        period: periodLabel(period),
-        summary: `${totalOutlets.toLocaleString()} outlet${totalOutlets === 1 ? '' : 's'} · ${withStock} of ${query.data.provinces.length} provinces with stock · ${grandTotal.toLocaleString()} cases in total`,
+        period: [place, periodLabel(period)].filter(Boolean).join(' · '),
+        unit: words.one,
+        summary: `${totalOutlets.toLocaleString()} outlet${totalOutlets === 1 ? '' : 's'} · ${withStock} of ${query.data.provinces.length} ${words.many} with stock · ${grandTotal.toLocaleString()} cases in total`,
       })
     } catch (error) {
       toast.error(getErrorMessage(error, 'Unable to export the PDF.'))
@@ -72,7 +111,9 @@ export function ProvinceStock() {
               Stock by Province
             </h2>
             <p className='text-muted-foreground'>
-              ចំនួនកេស (cases) per province, by product · {periodLabel(period)}
+              ចំនួនកេស (cases) per {words.one}, by product ·{' '}
+              {place && <>{place} · </>}
+              {periodLabel(period)}
             </p>
           </div>
           <Button
@@ -85,40 +126,84 @@ export function ProvinceStock() {
           </Button>
         </div>
 
+        <div className='grid grid-cols-1 gap-2 @xl/content:grid-cols-3'>
+          <FilterCombobox
+            label='Province'
+            allLabel='All provinces'
+            searchPlaceholder='Search province...'
+            options={toOptions(provincesList.data)}
+            value={period.provinceId}
+            isLoading={provincesList.isLoading}
+            isError={provincesList.isError}
+            onChange={(value) =>
+              setPeriod((p) => ({
+                ...p,
+                provinceId: value,
+                districtId: undefined,
+                communeId: undefined,
+              }))
+            }
+          />
+          <FilterCombobox
+            label='District'
+            allLabel='All districts'
+            searchPlaceholder='Search district...'
+            options={toOptions(districtsList.data)}
+            value={period.districtId}
+            disabled={!period.provinceId}
+            disabledHint='Select a province first'
+            isLoading={districtsList.isLoading}
+            isError={districtsList.isError}
+            onChange={(value) =>
+              setPeriod((p) => ({
+                ...p,
+                districtId: value,
+                communeId: undefined,
+              }))
+            }
+          />
+          <FilterCombobox
+            label='Commune'
+            allLabel='All communes'
+            searchPlaceholder='Search commune...'
+            options={toOptions(communesList.data)}
+            value={period.communeId}
+            disabled={!period.districtId}
+            disabledHint='Select a district first'
+            isLoading={communesList.isLoading}
+            isError={communesList.isError}
+            onChange={(value) => setPeriod((p) => ({ ...p, communeId: value }))}
+          />
+        </div>
+
         <div className='flex flex-wrap items-center gap-2'>
           <div className='grid flex-1 grid-cols-2 gap-2 @xl/content:flex @xl/content:flex-none'>
-            <DatePicker
-              selected={fromIsoDate(period.dateFrom)}
-              onSelect={(date) =>
-                setPeriod((p) => ({ ...p, dateFrom: toIsoDate(date) }))
+            <DateTimePicker
+              value={period.dateFrom}
+              onChange={(value) =>
+                setPeriod((p) => ({ ...p, dateFrom: value }))
               }
-              isDateDisabled={(date) =>
-                !!period.dateTo && date > fromIsoDate(period.dateTo)!
-              }
+              max={period.dateTo}
               placeholder='From date'
               aria-label='From date'
-              className='w-full @xl/content:w-44'
+              className='w-full @xl/content:w-56'
             />
-            <DatePicker
-              selected={fromIsoDate(period.dateTo)}
-              onSelect={(date) =>
-                setPeriod((p) => ({ ...p, dateTo: toIsoDate(date) }))
-              }
-              isDateDisabled={(date) =>
-                !!period.dateFrom && date < fromIsoDate(period.dateFrom)!
-              }
+            <DateTimePicker
+              value={period.dateTo}
+              onChange={(value) => setPeriod((p) => ({ ...p, dateTo: value }))}
+              min={period.dateFrom}
               placeholder='To date'
               aria-label='To date'
-              className='w-full @xl/content:w-44'
+              className='w-full @xl/content:w-56'
             />
           </div>
-          {(period.dateFrom || period.dateTo) && (
+          {hasFilters && (
             <Button
               variant='ghost'
               className='ms-auto'
               onClick={() => setPeriod({})}
             >
-              <X /> Clear dates
+              <X /> Clear filters
             </Button>
           )}
         </div>
@@ -140,7 +225,7 @@ export function ProvinceStock() {
             </div>
           ) : query.data.provinces.length === 0 ? (
             <p className='py-16 text-center text-sm text-muted-foreground'>
-              មិនទាន់មានខេត្តទេ · No provinces yet.
+              មិនទាន់មាន{words.kh}ទេ · No {words.many} yet.
             </p>
           ) : (
             <div
@@ -156,7 +241,7 @@ export function ProvinceStock() {
                 outlet{totalOutlets === 1 ? '' : 's'} ·{' '}
                 {grandTotal === 0
                   ? 'មិនមានស្តុកក្នុងរយៈពេលនេះទេ · No stock reported in this period.'
-                  : `${withStock} of ${query.data.provinces.length} provinces with stock · `}
+                  : `${withStock} of ${query.data.provinces.length} ${words.many} with stock · `}
                 {grandTotal > 0 && (
                   <>
                     <span className='font-semibold text-foreground tabular-nums'>

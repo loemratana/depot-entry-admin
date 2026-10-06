@@ -1,8 +1,13 @@
 import { z } from 'zod'
+import {
+  FILTER_DATE_PATTERN,
+  isFilterRangeValid,
+} from '@/features/clients/lib/format'
 
 const isoDate = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  // A day, or a day and time (yyyy-MM-ddTHH:mm)
+  .regex(FILTER_DATE_PATTERN)
   .optional()
   .catch(undefined)
 
@@ -22,7 +27,7 @@ export const clientMapSearchSchema = z
     sequence: z.boolean().optional().catch(undefined),
   })
   .transform((search) =>
-    search.dateFrom && search.dateTo && search.dateFrom > search.dateTo
+    !isFilterRangeValid(search.dateFrom, search.dateTo)
       ? { ...search, dateTo: undefined }
       : search
   )

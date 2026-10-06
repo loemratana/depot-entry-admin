@@ -21,6 +21,8 @@ type ExportInput = {
   period: string
   /** e.g. "120 outlets · 18 of 25 provinces with stock · 40,776 cases in total" */
   summary: string
+  /** What each bar is: province (default), district or commune */
+  unit?: string
 }
 
 const loadImage = (src: string) =>
@@ -64,6 +66,7 @@ export async function exportProvinceStockPdf({
   data,
   period,
   summary,
+  unit = 'province',
 }: ExportInput) {
   await loadChartFonts()
 
@@ -90,7 +93,7 @@ export async function exportProvinceStockPdf({
   g.fillStyle = '#4b5563'
   g.font = `400 18px ${FONT}`
   g.fillText(
-    `ចំនួនកេស (cases) per province, by product · ${period}`,
+    `ចំនួនកេស (cases) per ${unit}, by product · ${period}`,
     MARGIN,
     MARGIN + 48
   )

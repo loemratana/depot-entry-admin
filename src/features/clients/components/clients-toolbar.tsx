@@ -3,10 +3,9 @@ import { Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { DatePicker } from '@/components/date-picker'
+import { DateTimePicker } from '@/components/date-time-picker'
 import { useCommunes, useDistricts, useProvinces } from '../data/queries'
 import { type ClientFilters, type LocationOption } from '../data/schema'
-import { fromIsoDate, toIsoDate } from '../lib/format'
 import { type ComboboxOption, FilterCombobox } from './filter-combobox'
 
 const SEARCH_DEBOUNCE_MS = 400
@@ -76,9 +75,6 @@ export function ClientsToolbar({
     }, SEARCH_DEBOUNCE_MS)
     return () => clearTimeout(timeout)
   }, [searchInput, onFiltersChange])
-
-  const dateFrom = fromIsoDate(filters.dateFrom)
-  const dateTo = fromIsoDate(filters.dateTo)
 
   const hasActiveFilters = Object.values(filters).some(Boolean) || !!searchInput
 
@@ -160,21 +156,21 @@ export function ClientsToolbar({
             actions && 'basis-full @xl/content:basis-auto'
           )}
         >
-          <DatePicker
-            selected={dateFrom}
-            onSelect={(date) => onFiltersChange({ dateFrom: toIsoDate(date) })}
-            isDateDisabled={(date) => !!dateTo && date > dateTo}
+          <DateTimePicker
+            value={filters.dateFrom}
+            onChange={(value) => onFiltersChange({ dateFrom: value })}
+            max={filters.dateTo}
             placeholder='From date'
             aria-label='From date'
-            className='w-full @xl/content:w-44'
+            className='w-full @xl/content:w-56'
           />
-          <DatePicker
-            selected={dateTo}
-            onSelect={(date) => onFiltersChange({ dateTo: toIsoDate(date) })}
-            isDateDisabled={(date) => !!dateFrom && date < dateFrom}
+          <DateTimePicker
+            value={filters.dateTo}
+            onChange={(value) => onFiltersChange({ dateTo: value })}
+            min={filters.dateFrom}
             placeholder='To date'
             aria-label='To date'
-            className='w-full @xl/content:w-44'
+            className='w-full @xl/content:w-56'
           />
         </div>
         <Button
