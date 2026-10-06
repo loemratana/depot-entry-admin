@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfigDrawer } from '@/components/config-drawer'
-import { DatePicker } from '@/components/date-picker'
+import { DateTimePicker } from '@/components/date-time-picker'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
@@ -25,7 +25,7 @@ import {
   useProvinces,
 } from '@/features/clients/data/queries'
 import { type LocationOption } from '@/features/clients/data/schema'
-import { fromIsoDate, toIsoDate } from '@/features/clients/lib/format'
+import { formatFilterDate } from '@/features/clients/lib/format'
 import { useStockCatalog } from '@/features/stock/data/api'
 import {
   type DashboardFilters,
@@ -152,11 +152,11 @@ function ProductCard({
 
 const periodLabel = ({ dateFrom, dateTo }: DashboardFilters) =>
   dateFrom && dateTo
-    ? `${dateFrom} → ${dateTo}`
+    ? `${formatFilterDate(dateFrom)} → ${formatFilterDate(dateTo)}`
     : dateFrom
-      ? `From ${dateFrom}`
+      ? `From ${formatFilterDate(dateFrom)}`
       : dateTo
-        ? `Until ${dateTo}`
+        ? `Until ${formatFilterDate(dateTo)}`
         : 'All time'
 
 /** Outlet and stock totals, filtered by location and period */
@@ -242,25 +242,21 @@ export function Dashboard() {
           </div>
           <div className='flex flex-wrap items-center gap-2'>
             <div className='grid flex-1 grid-cols-2 gap-2 @xl/content:flex @xl/content:flex-none'>
-              <DatePicker
-                selected={fromIsoDate(filters.dateFrom)}
-                onSelect={(date) => update({ dateFrom: toIsoDate(date) })}
-                isDateDisabled={(date) =>
-                  !!filters.dateTo && date > fromIsoDate(filters.dateTo)!
-                }
+              <DateTimePicker
+                value={filters.dateFrom}
+                onChange={(value) => update({ dateFrom: value })}
+                max={filters.dateTo}
                 placeholder='From date'
                 aria-label='From date'
-                className='w-full @xl/content:w-44'
+                className='w-full @xl/content:w-56'
               />
-              <DatePicker
-                selected={fromIsoDate(filters.dateTo)}
-                onSelect={(date) => update({ dateTo: toIsoDate(date) })}
-                isDateDisabled={(date) =>
-                  !!filters.dateFrom && date < fromIsoDate(filters.dateFrom)!
-                }
+              <DateTimePicker
+                value={filters.dateTo}
+                onChange={(value) => update({ dateTo: value })}
+                min={filters.dateFrom}
                 placeholder='To date'
                 aria-label='To date'
-                className='w-full @xl/content:w-44'
+                className='w-full @xl/content:w-56'
               />
             </div>
             {hasFilters && (

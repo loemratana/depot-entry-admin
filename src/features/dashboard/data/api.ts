@@ -53,9 +53,11 @@ export function useDashboard(filters: DashboardFilters) {
 }
 
 export type ProvinceStock = {
+  /** What the rows are: provinces, or the districts / communes of the chosen place */
+  level?: 'province' | 'district' | 'commune'
   /** Products in stock-form order; provinces' `cases` follow this order */
   products: { id: string; shortName: string }[]
-  /** Provinces with stock, largest total first */
+  /** One row per place, largest total first (named provinces for the chart) */
   provinces: {
     id: string
     nameKh: string
@@ -67,10 +69,15 @@ export type ProvinceStock = {
   }[]
 }
 
-export function useProvinceStock(period: {
+export type ProvinceStockFilters = {
+  provinceId?: string
+  districtId?: string
+  communeId?: string
   dateFrom?: string
   dateTo?: string
-}) {
+}
+
+export function useProvinceStock(period: ProvinceStockFilters) {
   return useQuery({
     queryKey: ['dashboard', 'provinces', period],
     queryFn: async ({ signal }) =>

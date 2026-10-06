@@ -1,8 +1,10 @@
 import { z } from 'zod'
+import { FILTER_DATE_PATTERN, isFilterRangeValid } from '../lib/format'
 
 const isoDate = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  // A day, or a day and time (yyyy-MM-ddTHH:mm)
+  .regex(FILTER_DATE_PATTERN)
   .optional()
   .catch(undefined)
 
@@ -23,7 +25,7 @@ export const clientsSearchSchema = z
   })
   // A hand-edited URL must not produce an impossible date range
   .transform((search) =>
-    search.dateFrom && search.dateTo && search.dateFrom > search.dateTo
+    !isFilterRangeValid(search.dateFrom, search.dateTo)
       ? { ...search, dateTo: undefined }
       : search
   )
