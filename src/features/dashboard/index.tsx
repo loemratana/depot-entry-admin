@@ -301,7 +301,7 @@ export function Dashboard() {
                   <CalendarCheck className='size-5' />
                 </span>
               }
-              footer='Added today (Cambodia time)'
+              footer='Added today'
             />
             <StatCard
               className={OUTLET_COLORS.total}
