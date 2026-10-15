@@ -42,7 +42,10 @@ export type StockCatalog = {
 type Named = { id: string; nameKh: string; nameEn: string }
 
 export type StockReport = {
+  /** The report id; for an outlet without a report (hasReport false), the outlet id */
   id: string
+  /** false: the outlet has not sent stock yet ("No stock"; no items, no date) */
+  hasReport?: boolean
   /** phone: the outlet's current phone */
   outlet: { id: string; name: string; phone?: string }
   province: Named
@@ -56,7 +59,7 @@ export type StockReport = {
     measures: MeasureKey[]
   } & Record<MeasureKey, number>)[]
   totals: Record<MeasureKey, number>
-  reportedAt: string
+  reportedAt: string | null
   submittedByAdmin: boolean
 }
 
