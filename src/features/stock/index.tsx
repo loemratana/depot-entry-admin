@@ -144,6 +144,7 @@ export function StockReports() {
     pageSize: 20,
   })
   const [selected, setSelected] = useState<StockReport | null>(null)
+  const selectedReport = selected?.hasReport === false ? null : selected
   const [sheetOpen, setSheetOpen] = useState(false)
   const [toDelete, setToDelete] = useState<StockReport | null>(null)
   // Rows opened to show their products
@@ -479,7 +480,7 @@ export function StockReports() {
                           )}
                         </TableCell>
                         <TableCell>
-                          {reported && (
+                          {reported ? (
                             <>
                               <span className='block text-nowrap'>
                                 {reported.date}
@@ -488,6 +489,10 @@ export function StockReports() {
                                 {reported.time}
                               </span>
                             </>
+                          ) : (
+                            <span className='text-sm text-muted-foreground'>
+                              —
+                            </span>
                           )}
                         </TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
@@ -503,7 +508,8 @@ export function StockReports() {
                                 <Eye />
                               </Button>
                             </WithTooltip>
-                            {canDelete && (
+                            {/* An outlet without a report has nothing to delete */}
+                            {canDelete && row.hasReport !== false && (
                               <WithTooltip label='Delete'>
                                 <Button
                                   variant='ghost'
@@ -525,11 +531,18 @@ export function StockReports() {
                             colSpan={columnCount}
                             className='p-0 whitespace-normal'
                           >
-                            <BrandStockTables
-                              flush
-                              items={row.items}
-                              measures={measures}
-                            />
+                            {row.hasReport === false ? (
+                              <p className='px-4 py-3 text-sm text-muted-foreground'>
+                                មិនទាន់មានស្តុក · This outlet has not sent stock
+                                yet.
+                              </p>
+                            ) : (
+                              <BrandStockTables
+                                flush
+                                items={row.items}
+                                measures={measures}
+                              />
+                            )}
                           </TableCell>
                         </TableRow>
                       )}
@@ -550,11 +563,13 @@ export function StockReports() {
       </Main>
 
       <StockDetailSheet
-        report={selected}
+        // An outlet without a report shows "No stock" and Add stock
+        report={selectedReport}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         onDelete={canDelete ? setToDelete : undefined}
         onEdit={canEdit ? () => setEditing(true) : undefined}
+        emptyText='មិនទាន់មានស្តុក · No stock recorded for this outlet yet.'
       />
 
       {editing && selected && (
@@ -562,7 +577,7 @@ export function StockReports() {
           open
           onOpenChange={setEditing}
           outlet={selected.outlet}
-          report={selected}
+          report={selectedReport}
         />
       )}
 

@@ -24,11 +24,10 @@ export function OutletStockSheet({
     { outletId: outlet?.id, page: 1, limit: 1 },
     { enabled: open && !!outlet }
   )
-  // Reports are listed newest first
+  // The outlet's row; one without a report (hasReport false) has no stock yet
+  const row = reports.data?.data[0]
   const report =
-    reports.data?.data[0]?.outlet.id === outlet?.id
-      ? (reports.data?.data[0] ?? null)
-      : null
+    row && row.outlet.id === outlet?.id && row.hasReport !== false ? row : null
 
   const can = useCan()
   const [editing, setEditing] = useState(false)
