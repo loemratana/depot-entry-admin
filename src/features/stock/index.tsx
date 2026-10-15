@@ -52,7 +52,11 @@ import {
   useProvinces,
 } from '@/features/clients/data/queries'
 import { type LocationOption } from '@/features/clients/data/schema'
-import { formatSubmittedAt, locationName } from '@/features/clients/lib/format'
+import {
+  formatPhone,
+  formatSubmittedAt,
+  locationName,
+} from '@/features/clients/lib/format'
 import { BrandStockTables } from './components/brand-stock-tables'
 import { OutletStockDialog } from './components/outlet-stock-dialog'
 import { StockDetailSheet } from './components/stock-detail-sheet'
@@ -198,7 +202,7 @@ export function StockReports() {
 
   const hasFilters = Object.values(filters).some(Boolean)
   // Expand, Outlet, Province, District/Commune, Products, Reported At, Actions
-  const columnCount = 7
+  const columnCount = 8
   const first = meta && meta.total ? (meta.page - 1) * meta.limit + 1 : 0
   const last = meta ? Math.min(meta.page * meta.limit, meta.total) : 0
   const view = (report: StockReport) => {
@@ -248,7 +252,7 @@ export function StockReports() {
             <Input
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder='Search outlet name...'
+              placeholder='Search outlet name or phone...'
               className='ps-9'
               aria-label='Search outlets'
             />
@@ -345,6 +349,9 @@ export function StockReports() {
                   <span className='sr-only'>Expand</span>
                 </TableHead>
                 <TableHead>Outlet</TableHead>
+                <TableHead className='hidden @xl/content:table-cell'>
+                  Phone
+                </TableHead>
                 <TableHead className='hidden @2xl/content:table-cell'>
                   Province
                 </TableHead>
@@ -441,6 +448,11 @@ export function StockReports() {
                         </TableCell>
                         <TableCell className='font-medium'>
                           {row.outlet.name}
+                        </TableCell>
+                        <TableCell className='hidden whitespace-nowrap tabular-nums @xl/content:table-cell'>
+                          {row.outlet.phone
+                            ? formatPhone(row.outlet.phone)
+                            : '—'}
                         </TableCell>
                         <TableCell className='hidden @2xl/content:table-cell'>
                           {locationName(row.province)}

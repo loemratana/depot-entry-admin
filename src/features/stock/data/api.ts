@@ -43,7 +43,8 @@ type Named = { id: string; nameKh: string; nameEn: string }
 
 export type StockReport = {
   id: string
-  outlet: { id: string; name: string }
+  /** phone: the outlet's current phone */
+  outlet: { id: string; name: string; phone?: string }
   province: Named
   district: Named
   commune: Named
