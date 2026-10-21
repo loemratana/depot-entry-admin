@@ -8,6 +8,7 @@ import {
   AlertCircle,
   ChevronRight,
   Download,
+  FileSpreadsheet,
   Eye,
   Loader2,
   Package,
@@ -187,6 +188,7 @@ export function StockReports() {
   const rows = query.data?.data ?? []
   const meta = query.data?.pagination
   const exportStock = useExportStock()
+  const exportSheet = useExportStock('sheet')
   const deleteReport = useDeleteStockReport()
 
   // Only used for its pagination state/controls
@@ -242,6 +244,21 @@ export function StockReports() {
                   <Download />
                 )}
                 {exportStock.isPending ? 'Exporting...' : 'Export Excel'}
+              </Button>
+            )}
+            {can('stock.export') && (
+              // Real stock in the field team's sheet layout
+              <Button
+                variant='outline'
+                onClick={() => exportSheet.mutate(filters)}
+                disabled={exportSheet.isPending}
+              >
+                {exportSheet.isPending ? (
+                  <Loader2 className='animate-spin' />
+                ) : (
+                  <FileSpreadsheet />
+                )}
+                {exportSheet.isPending ? 'Exporting...' : 'Export stock sheet'}
               </Button>
             )}
           </div>

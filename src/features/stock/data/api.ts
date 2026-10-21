@@ -177,11 +177,20 @@ function filenameFromDisposition(header: unknown) {
   return /filename="?([^";]+)"?/i.exec(header)?.[1]?.trim() ?? null
 }
 
-export function useExportStock() {
+/**
+ * Downloads a stock export for the current filters: the usual one, or
+ * `sheet` for the real stock in the field team's sheet layout (one sheet,
+ * Province and District columns to filter).
+ */
+export function useExportStock(kind: 'reports' | 'sheet' = 'reports') {
+  const path =
+    kind === 'sheet'
+      ? '/admin/stock/reports/export-sheet'
+      : '/admin/stock/reports/export'
   return useMutation({
     mutationFn: async (filters: StockFilters) => {
       try {
-        const res = await apiClient.get<Blob>('/admin/stock/reports/export', {
+        const res = await apiClient.get<Blob>(path, {
           params: filters,
           responseType: 'blob',
           timeout: 5 * 60 * 1000,
@@ -190,7 +199,7 @@ export function useExportStock() {
           blob: res.data,
           filename:
             filenameFromDisposition(res.headers['content-disposition']) ??
-            'stock-reports.xlsx',
+            (kind === 'sheet' ? 'stock-sheet.xlsx' : 'stock-reports.xlsx'),
         }
       } catch (error) {
         // Error bodies arrive as a Blob because of responseType; decode the JSON message
